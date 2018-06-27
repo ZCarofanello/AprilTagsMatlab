@@ -15,7 +15,7 @@ function Edge = CalcEdges(Magnitude, Direction)
                     Point = [x+1,y];
                     
                     if(FirstEntry)
-                        Edge = [Cost,IdA,IdB,Point]
+                        Edge = [Cost,IdA,IdB,Point];
                         FirstEntry = false;
                     else
                         Edge = [Edge;Cost,IdA,IdB,Point];
@@ -32,7 +32,7 @@ function Edge = CalcEdges(Magnitude, Direction)
                     Point = [x,y+1];
                     
                     if(FirstEntry)
-                        Edge = [Cost,IdA,IdB,Point]
+                        Edge = [Cost,IdA,IdB,Point];
                         FirstEntry = false;
                     else
                         Edge = [Edge;Cost,IdA,IdB,Point];
@@ -49,7 +49,7 @@ function Edge = CalcEdges(Magnitude, Direction)
                     Point = [x+1,y+1];
                     
                     if(FirstEntry)
-                        Edge = [Cost,IdA,IdB,Point]
+                        Edge = [Cost,IdA,IdB,Point];
                         FirstEntry = false;
                     else
                         Edge = [Edge;Cost,IdA,IdB,Point];
@@ -66,7 +66,7 @@ function Edge = CalcEdges(Magnitude, Direction)
                     Point = [x-1,y+1];
                     
                     if(FirstEntry)
-                        Edge = [Cost,IdA,IdB,Point]
+                        Edge = [Cost,IdA,IdB,Point];
                         FirstEntry = false;
                     else
                         Edge = [Edge;Cost,IdA,IdB,Point];

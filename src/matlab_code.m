@@ -57,10 +57,6 @@ figure('Name','Stage 2b: Gradient Direction');
 imshow(NormalizeVals(gd));
 title('Stage 2b: Gradient Direction');
 
-
-
-%houghTest(image_gray);
-
 %Stage 3 + 4: Edge Extraction / Clustering
 image_clusters = EdgeFunction(gm,gd,50);
 
