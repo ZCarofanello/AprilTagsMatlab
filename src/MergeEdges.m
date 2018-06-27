@@ -1,6 +1,6 @@
 function Clusters = MergeEdges(Edges,Magnitude,Direction)
     %Constants to export sometime
-    thetaThr = 100;
+    thetaThr = 120;
     magThr = 1200;
     
     %Get the width and height of the iamge

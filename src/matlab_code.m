@@ -2,9 +2,9 @@ clc;
 clear all;
 close all;
 
-bike = 'bikesgray.jpg';
-tag = 'test_tag.png';
-ref = 'tag_middle.png';
+bike = '../pics/bikesgray.jpg';
+tag = '../pics/test_tag.png';
+ref = '../pics/tag_middle.png';
 
 Debug_Gradient = 0;
 
@@ -66,7 +66,7 @@ image_clusters = EdgeFunction(gm,gd,50);
 
 %Stage 5: Segmentation (Need to add the 
 MinCluster = 4;
-Segments   = Segmenter(image_clusters,image_gray);
+Segments   = Segmenter(image_clusters,gd,image_gray);
 
 function output = NormalizeVals(input,Max,Min)
     switch nargin
@@ -84,7 +84,7 @@ imshow(Magnitude);
 FoundEdges = CalcEdges(Magnitude, Direction);
 end
 
-function lines = Segmenter(image_clusters,image_grey)
+function lines = Segmenter(image_clusters,Theta,image_grey)
 MinDist = 4;
 Cluster_Num = unique(image_clusters(:,4)); %Gets each unique cluster
 
@@ -95,31 +95,36 @@ imshow(image_grey);
 hold on;
 for i = 1:size(Cluster_Num)
     num_of_pts = size(find(image_clusters(:,4) == Cluster_Num(i)),1);
-    temp = image_clusters(current_num:num_of_pts+current_num - 1,:);
-    LineTemp = Line2D(temp(:,1),temp(:,2),temp(:,3));
+    
+    temp = image_clusters(current_num:num_of_pts+current_num - 1,:); %Get all the points in that cluster
+    
+    LineTemp = Line2D(temp(:,1),temp(:,2),temp(:,3));                %Find the line created by those points
+    
     if(MinDist < Pt2PtDist(LineTemp(1,1),LineTemp(1,2),LineTemp(1,3),LineTemp(1,4)))
-        segments = [segments;LineTemp];
-        plot([LineTemp(1),LineTemp(3)],[LineTemp(2),LineTemp(4)],'-r');
+        segments = [segments;LineTemp]; %Add to the good segments
+        plot([LineTemp(1),LineTemp(3)],[LineTemp(2),LineTemp(4)],'-r'); %plot the segment
     end
+    
     current_num = current_num + num_of_pts; %Add to the offset
 end
 hold off;
 
-lines = segments;
+lines = segments; %Export those segments
 
 end
 
 function line = Line2D(x,y,w)
-weightedX = x .* w;
-weightedY = y .* w;
+weightedX = x .* w; %Weights all the x components
+weightedY = y .* w; %Weights all the y components
 
-mY = sum(weightedY);
-mX = sum(weightedX);
+mX = sum(weightedX); %Sums all the weighted x components
+mY = sum(weightedY); %Sums all the weighted y components
 
-mYY = sum(weightedY .* y);
-mXX = sum(weightedX .* x);
-mXY = sum(weightedY .* x);
-n = sum(w);
+
+mXX = sum(weightedX .* x); %Weighted sum of x squares
+mYY = sum(weightedY .* y); %Weighted sum of y squares
+mXY = sum(weightedY .* x); %Weighted sum of xy product
+n = sum(w);                %Sum of weights
 
 Ex  = mX/n;
 Ey  = mY/n;
@@ -127,22 +132,22 @@ Cxx = (mXX/n) - Ex^2;
 Cyy = (mYY/n) - Ey^2;
 Cxy = (mXY/n) - (Ex*Ey);
 
-phi = 0.5*atan2(-2*Cxy,(Cyy-Cxx));
+phi = 0.5*atan2(-2*Cxy,(Cyy-Cxx)); %Uses SVD to find direction
 
-dx = -sin(phi);
-dy =  cos(phi);
-xp = round(Ex);
-yp = round(Ey);
+dx = -sin(phi); %Change in x
+dy =  cos(phi); %Change in y
+xp = round(Ex); %Rounded X point on line
+yp = round(Ey); %Rounded Y point on line
 
-[xp,yp,dx,dy] = normalizeP(dx,dy,xp,yp);
+[xp,yp,dx,dy] = normalizeP(dx,dy,xp,yp); %Normalize the point
 
-line_coord = GetLineCoord(x,y,dx,dy);
+line_coord = GetLineCoord(x,y,dx,dy);    %Get each coordinate on the line from our data set
 
-maxcoord = max(line_coord);
-mincoord = min(line_coord);
+maxcoord = max(line_coord); %Find the end of the line
+mincoord = min(line_coord); %Find the beginning of the line
 
-[max_x, max_y] = GetPtCoord(xp,yp,dx,dy,maxcoord);
-[min_x, min_y] = GetPtCoord(xp,yp,dx,dy,mincoord);
+[max_x, max_y] = GetPtCoord(xp,yp,dx,dy,maxcoord); %Find where the beginning is on the line
+[min_x, min_y] = GetPtCoord(xp,yp,dx,dy,mincoord); %Find where the end is on the line
 
 line = [min_x,min_y,max_x,max_y,0,0];
 end
