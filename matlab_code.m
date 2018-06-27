@@ -8,7 +8,7 @@ ref = 'tag_middle.png';
 
 Debug_Gradient = 0;
 
-image = imread(ref);
+image = imread(tag);
 figure('Name','Original Image');
 imshow(image);
 title('Original Image');
@@ -85,22 +85,24 @@ FoundEdges = CalcEdges(Magnitude, Direction);
 end
 
 function lines = Segmenter(image_clusters,image_grey)
+MinDist = 4;
 Cluster_Num = unique(image_clusters(:,4)); %Gets each unique cluster
 
-segments = zeros(1,6,size(Cluster_Num,1)); %Array for holding segments
+segments = []; %Array for holding segments
 current_num = 1; %holds the offset of the where we're grabbing clusters
-
-for i = 1:size(Cluster_Num)
-    num_of_pts = size(find(image_clusters(:,4) == Cluster_Num(i)),1);
-    temp = image_clusters(current_num:num_of_pts+current_num - 1,:);
-    segments(:,:,i) = Line2D(temp(:,1),temp(:,2),temp(:,3));
-    current_num = current_num + num_of_pts; %Add to the offset
-end
-
 figure;
 imshow(image_grey);
 hold on;
-plot([segments(1,1,i),segments(1,3,i)],[segments(1,2,i),segments(1,4,i)],'-r');
+for i = 1:size(Cluster_Num)
+    num_of_pts = size(find(image_clusters(:,4) == Cluster_Num(i)),1);
+    temp = image_clusters(current_num:num_of_pts+current_num - 1,:);
+    LineTemp = Line2D(temp(:,1),temp(:,2),temp(:,3));
+    if(MinDist < Pt2PtDist(LineTemp(1,1),LineTemp(1,2),LineTemp(1,3),LineTemp(1,4)))
+        segments = [segments;LineTemp];
+        plot([LineTemp(1),LineTemp(3)],[LineTemp(2),LineTemp(4)],'-r');
+    end
+    current_num = current_num + num_of_pts; %Add to the offset
+end
 hold off;
 
 lines = segments;
@@ -142,7 +144,7 @@ mincoord = min(line_coord);
 [max_x, max_y] = GetPtCoord(xp,yp,dx,dy,maxcoord);
 [min_x, min_y] = GetPtCoord(xp,yp,dx,dy,mincoord);
 
-line = [min_y,min_x,max_y,max_x,0,0];
+line = [min_x,min_y,max_x,max_y,0,0];
 end
 
 function [y,x] = GetPtCoord(xp,yp,dx,dy,coord)
@@ -166,4 +168,10 @@ function [dx,dy] = normalizeSlope(dx,dy)
 mag = sqrt(dx^2+dy^2);
 dx = dx / mag;
 dy = dy / mag;
+end
+
+function distance = Pt2PtDist(P1x,P1y,P2x,P2y)
+dx = P1x - P2x;
+dy = P1y - P2y;
+distance = sqrt(dx^2 + dy^2);
 end

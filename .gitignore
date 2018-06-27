@@ -3,3 +3,8 @@ apriltag-2016-12-01/
 april-tag-baseline/
 apriltags/
 BadSources/
+
+#Intermediate files
+*.asv
+*.mexw64
+*.slx

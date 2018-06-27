@@ -1,8 +1,7 @@
 function Edge = CalcEdges(Magnitude, Direction)
     height = size(Magnitude,1);
     width = size(Magnitude,2);
-    Edge = struct('IdA',[],'IdB',[],'Point',[],'Cost',[]);
-    TempStruct = struct('IdA',[],'IdB',[],'Point',[],'Cost',[]);
+    Edge = [];
     FirstEntry = true;
     for x = 2:height-2
         for y = 2:width-2
@@ -10,107 +9,79 @@ function Edge = CalcEdges(Magnitude, Direction)
             if(Magnitude(x+1,y) ~= 0)
                 E_Cost = EdgeCost(Direction(x,y),Direction(x+1,y));
                 if(E_Cost >= 0)
+                    Cost = double(E_Cost);
+                    IdA  = y*width+x;
+                    IdB  = y*width+(x+1);  
+                    Point = [x+1,y];
+                    
                     if(FirstEntry)
-                        Edge.Cost = E_Cost;
-                        %Edge.IdA  = y+x*height;
-                        Edge.IdA  = y*width+x;
-                        %Edge.IdB  = y+(x+1)*height;
-                        Edge.IdB  = y*width+(x+1); 
-                        Edge.Point = [x+1,y];
+                        Edge = [Cost,IdA,IdB,Point]
                         FirstEntry = false;
                     else
-                        TempStruct.Cost = E_Cost;
-                        %TempStruct.IdA  = y+x*height;
-                        TempStruct.IdA  = y*width+x;
-                        %TempStruct.IdB  = y+(x+1)*height;
-                        TempStruct.IdB  = y*width+(x+1);  
-                        TempStruct.Point = [x+1,y];
-                        Edge = [Edge,TempStruct];
+                        Edge = [Edge;Cost,IdA,IdB,Point];
                     end
-                    continue;
                 end
             end
             %Cost2
             if(Magnitude(x,y+1) ~= 0)
                 E_Cost = EdgeCost(Direction(x,y),Direction(x,y+1));
                 if(E_Cost >= 0)
+                    Cost = double(E_Cost);
+                    IdA  = y*width+x;
+                    IdB  = (y+1)*width+(x);  
+                    Point = [x,y+1];
+                    
                     if(FirstEntry)
-                        Edge.Cost = E_Cost;
-                        %Edge.IdA  = (y)+x*height;
-                        Edge.IdA  = y*width+x;
-                        %Edge.IdB  = (y+1)+(x)*height;
-                        Edge.IdB  = (y+1)*width+(x); 
-                        Edge.Point = [x,y+1];
+                        Edge = [Cost,IdA,IdB,Point]
                         FirstEntry = false;
                     else
-                        TempStruct.Cost = E_Cost;
-                        %TempStruct.IdA  = (y)+x*height;
-                        TempStruct.IdA  = y*width+x;
-                        %TempStruct.IdB  = (y+1)+(x)*height;
-                        TempStruct.IdB  = (y+1)*width+(x);  
-                        TempStruct.Point = [x,y+1];
-                        Edge = [Edge,TempStruct];
+                        Edge = [Edge;Cost,IdA,IdB,Point];
                     end
-                    continue;
                 end
             end
             %Cost3
             if(Magnitude(x+1,y+1) ~= 0)
                 E_Cost = EdgeCost(Direction(x,y),Direction(x+1,y+1));
                 if(E_Cost >= 0)
+                    Cost = double(E_Cost);
+                    IdA  = y*width+x;
+                    IdB  = (y+1)*width+(x+1); 
+                    Point = [x+1,y+1];
+                    
                     if(FirstEntry)
-                        Edge.Cost = E_Cost;
-                        %Edge.IdA  = (y)+x*height;
-                        Edge.IdA  = y*width+x;
-                        %Edge.IdB  = (y+1)+(x+1)*height;
-                        Edge.IdB  = (y+1)*width+(x+1); 
-                        Edge.Point = [x+1,y+1];
+                        Edge = [Cost,IdA,IdB,Point]
                         FirstEntry = false;
                     else
-                        TempStruct.Cost = E_Cost;
-                        %TempStruct.IdA  = (y)+x*height;
-                        TempStruct.IdA  = y*width+x;
-                        %TempStruct.IdB  = (y+1)+(x+1)*height;
-                        TempStruct.IdB  = (y+1)*width+(x+1); 
-                        TempStruct.Point = [x+1,y+1];
-                        Edge = [Edge,TempStruct];
+                        Edge = [Edge;Cost,IdA,IdB,Point];
                     end
-                    continue;
                 end
             end
             %Cost4
             if(Magnitude(x-1,y+1) ~= 0 && x ~= 2)
                 E_Cost = EdgeCost(Direction(x,y),Direction(x-1,y+1));
                 if(E_Cost >= 0)
+                	Cost = double(E_Cost);
+                    IdA  = y*width+x;
+                    IdB  = (y+1)*width+(x-1);  
+                    Point = [x-1,y+1];
+                    
                     if(FirstEntry)
-                        Edge.Cost = E_Cost;
-                        %Edge.IdA  = (y)+x*height;
-                        Edge.IdA  = y*width+x;
-                        %Edge.IdB  = (y+1)+(x-1)*height;
-                        Edge.IdB  = (y+1)*width+(x-1);  
-                        Edge.Point = [x-1,y+1];
+                        Edge = [Cost,IdA,IdB,Point]
                         FirstEntry = false;
                     else
-                        TempStruct.Cost = E_Cost;
-                        %TempStruct.IdA  = (y)+x*height;
-                        TempStruct.IdA  = y*width+x;
-                        %TempStruct.IdB  = (y+1)+(x-1)*height;
-                        TempStruct.IdB  = (y+1)*width+(x-1); 
-                        TempStruct.Point = [x-1,y+1];
-                        Edge = [Edge,TempStruct];
+                        Edge = [Edge;Cost,IdA,IdB,Point];
                     end
-                    continue;
                 end
             end
         end
     end
-    %Edge = sortrows(Edge,4);
+    Edge = sortrows(Edge,1);
     %Display found Edges
     figure;
     imshow(Magnitude);
     hold on;
-    for i = 1:size(Edge,2)
-        plot(Edge(i).Point(2),Edge(i).Point(1),'r*');
+    for i = 1:size(Edge,1)
+        plot(Edge(i,5),Edge(i,4),'r*');
     end
     hold off;
     

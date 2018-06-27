@@ -1,6 +1,6 @@
 function Clusters = MergeEdges(Edges,Magnitude,Direction)
     %Constants to export sometime
-    thetaThr = 50;
+    thetaThr = 100;
     magThr = 1200;
     
     %Get the width and height of the iamge
@@ -14,11 +14,11 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
     mmax = reshape(Magnitude,1,[]);
     
     %Create the unionfind vector which is pre allocated for speed
-    SimpleUF = [(1:width*height); ones(1,width*height);(1:width*height)];
+    SimpleUF = [(1:width*height); ones(1,width*height)];
     
-    for i = 1:size(Edges,2)
-        ida = Edges(i).IdA;
-        idb = Edges(i).IdB;
+    for i = 1:size(Edges,1)
+        ida = Edges(i,2);
+        idb = Edges(i,3);
         
         [ida, SimpleUF] = getRepresentative(SimpleUF,ida); %gets rep
         [idb, SimpleUF] = getRepresentative(SimpleUF,idb); %gets rep
@@ -126,12 +126,12 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
     
     ClusterList = [];
     FirstEntry = true;
-    for i = 1:size(Edges,2)-1
-        if(logical_arr(Edges(i).IdA))
-            EdgeCluster = UF_Array(1,Edges(i).IdA);
-            EdgeMag = Magnitude(Edges(i).Point(1),Edges(i).Point(2));
-            EdgeX = Edges(i).Point(2);
-            EdgeY = Edges(i).Point(1);
+    for i = 1:size(Edges,1)-1
+        if(logical_arr(Edges(i,2)))
+            EdgeCluster = UF_Array(1,Edges(i,2));
+            EdgeMag = Magnitude(Edges(i,4),Edges(i,5));
+            EdgeX = Edges(i,4);
+            EdgeY = Edges(i,5);
             if(FirstEntry)
                 ClusterList = [EdgeX,EdgeY,EdgeMag,EdgeCluster];
                 FirstEntry = false;
@@ -140,12 +140,23 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
             end
         end
     end
+
+    ClusterList = sortrows(ClusterList,4);
+    
+    Cluster_Num = unique(ClusterList(:,4)); %Gets each unique cluster
+
+    current_num = 1; %holds the offset of the where we're grabbing clusters
+    
     figure;
     imshow(Magnitude);
     hold on;
-    plot(ClusterList(:,1),ClusterList(:,2),'r*');
-    hold off;
-    ClusterList = sortrows(ClusterList,4);
+    for i = 1:size(Cluster_Num)
+        num_of_pts = size(find(ClusterList(:,4) == Cluster_Num(i)),1);
+        temp = ClusterList(current_num:num_of_pts+current_num - 1,:);
+        plot(temp(:,2),temp(:,1),'*');
+        current_num = current_num + num_of_pts; %Add to the offset
+    end
+
 end
 
 % %This is a messy function to verify that it's spitting out valid data
