@@ -71,11 +71,10 @@ end
 function [root,UpdatedArray] = getRepresentative(UFArray,NodeId)
     if(UFArray(1,NodeId) == NodeId) %If it is it's own rep return
         root = NodeId;          %No changes
-        UpdatedArray = UFArray; %Send back the array
-        return;
+    else
+        root = getRepresentative(UFArray,UFArray(1,NodeId)); %Recurse
+        UFArray(1,NodeId) = root; %Flatten the tree
     end
-root = getRepresentative(UFArray,UFArray(1,NodeId)); %Recurse
-UFArray(1,NodeId) = root; %Flatten the tree
 UpdatedArray = UFArray;   %Return the updated array
 end
 
@@ -102,15 +101,6 @@ function [NewUFArray,root] = connectNodes(UFArray, aId,bId)
         root=bRoot; %Return the new root
         return;
     end
-end
-
-function value = mod2pi(value, ref)
-if nargin == 1
-    value = value - 2*pi*floor( (value+pi)/(2*pi) );
-    return;
-end
-shifted = value - ref;
-value = (shifted - 2*pi*floor( (shifted+pi)/(2*pi) ))+ref;
 end
 
 %Formatting the clusters as a list with points to make it easier later
@@ -158,37 +148,3 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
     end
 
 end
-
-% %This is a messy function to verify that it's spitting out valid data
-% function VisualizeClusters(UF_Array, Width,Height)
-%     VertBuf = zeros(Height,1);
-%     HorzBuf = zeros(1,Width);
-%     test = zeros(Height,Width);
-%     counts = zeros(Height,Width);
-%     
-%     for x = 0:Height-1
-%         for y = 1:Width-1
-%             if(x == 0)
-%                 test(1,y) = UF_Array(1,y+x*Height);
-%                 counts(1,y) = UF_Array(2,y+x*Height);
-%             else
-%                 test(x,y) = UF_Array(1,y+x*Height);
-%                 counts(x,y) = UF_Array(2,y+x*Height);
-%             end
-%         end
-%     end
-%     
-%     test1 = diff(test,1,1);
-%     test2 = diff(test,1,2);
-%     test1(test1 == 480) = 0;
-%     test1 = vertcat(HorzBuf,test1);
-%     %test1(test1 ~= 0) = 255;
-%     
-%     test2(test2 == 1) = 0;
-%     test2 = horzcat(VertBuf,test2);
-%     %test2(test2 ~= 0) = 255;
-%     
-%     test12 = test1 + test2;
-%     figure;
-%     imshow(test12);
-% end

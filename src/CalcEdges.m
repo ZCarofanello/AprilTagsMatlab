@@ -1,17 +1,19 @@
-function Edge = CalcEdges(Magnitude, Direction)
+function Edge = CalcEdges(Magnitude, Direction, MagThr)
+    Magnitude(Magnitude <= MagThr) = 0;%Makes sure all edges are above threshold
+    
     height = size(Magnitude,1);
     width = size(Magnitude,2);
     Edge = [];
     FirstEntry = true;
-    for x = 2:height-2
-        for y = 2:width-2
+    for x = 5:height-5
+        for y = 5:width-5
             %Cost1
             if(Magnitude(x+1,y) ~= 0)
                 E_Cost = EdgeCost(Direction(x,y),Direction(x+1,y));
                 if(E_Cost >= 0)
                     Cost = double(E_Cost);
-                    IdA  = y*width+x;
-                    IdB  = y*width+(x+1);  
+                    IdA  = y*height+x;
+                    IdB  = y*height+(x+1);
                     Point = [x+1,y];
                     
                     if(FirstEntry)
@@ -27,8 +29,8 @@ function Edge = CalcEdges(Magnitude, Direction)
                 E_Cost = EdgeCost(Direction(x,y),Direction(x,y+1));
                 if(E_Cost >= 0)
                     Cost = double(E_Cost);
-                    IdA  = y*width+x;
-                    IdB  = (y+1)*width+(x);  
+                    IdA  = y*height+x;
+                    IdB  = (y+1)*height+(x);  
                     Point = [x,y+1];
                     
                     if(FirstEntry)
@@ -44,8 +46,8 @@ function Edge = CalcEdges(Magnitude, Direction)
                 E_Cost = EdgeCost(Direction(x,y),Direction(x+1,y+1));
                 if(E_Cost >= 0)
                     Cost = double(E_Cost);
-                    IdA  = y*width+x;
-                    IdB  = (y+1)*width+(x+1); 
+                    IdA  = y*height+x;
+                    IdB  = (y+1)*height+(x+1); 
                     Point = [x+1,y+1];
                     
                     if(FirstEntry)
@@ -61,8 +63,8 @@ function Edge = CalcEdges(Magnitude, Direction)
                 E_Cost = EdgeCost(Direction(x,y),Direction(x-1,y+1));
                 if(E_Cost >= 0)
                 	Cost = double(E_Cost);
-                    IdA  = y*width+x;
-                    IdB  = (y+1)*width+(x-1);  
+                    IdA  = y*height+x;
+                    IdB  = (y+1)*height+(x-1);  
                     Point = [x-1,y+1];
                     
                     if(FirstEntry)
@@ -97,13 +99,4 @@ if(cost > maxEdgeCost)
 end
 cost = single((cost / maxEdgeCost));
 cost = int16(cost * 100);
-end
-
-function value = mod2pi(value, ref)
-if nargin == 1
-    value = value - 2*pi*floor( (value+pi)/(2*pi) );
-    return;
-end
-shifted = value - ref;
-value = (shifted - 2*pi*floor( (shifted+pi)/(2*pi) ))+ref;
 end

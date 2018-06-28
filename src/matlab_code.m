@@ -5,9 +5,11 @@ close all;
 bike = '../pics/bikesgray.jpg';
 tag = '../pics/test_tag.png';
 ref = '../pics/tag_middle.png';
+real = '../pics/real_life_tag.png';
+
 
 Debug_Gradient = 0;
-
+tStart = tic;
 image = imread(tag);
 figure('Name','Original Image');
 imshow(image);
@@ -56,13 +58,56 @@ title('Stage 2a: Gradient Magnitue');
 figure('Name','Stage 2b: Gradient Direction');
 imshow(NormalizeVals(gd));
 title('Stage 2b: Gradient Direction');
+tStep2 = toc(tStart)
 
 %Stage 3 + 4: Edge Extraction / Clustering
-image_clusters = EdgeFunction(gm,gd,50);
-
+image_clusters = CalcEdges(gm,gd,50);
+tStep3_4 = toc(tStart) - tStep2
 %Stage 5: Segmentation (Need to add the 
 MinCluster = 4;
-Segments   = Segmenter(image_clusters,gd,image_gray);
+FoundSegs   = Segmenter(image_clusters,gd,image_gray);
+tStep5 = toc(tStart) - tStep3_4
+
+%Stage 6: Chain Segments
+linked_segments = LinkSegs(FoundSegs);
+
+tElapsed = toc(tStart)
+
+function linked_segments = LinkSegs(Segments)
+
+end
+
+function [x, y] = IntersectionWith(ParentLine, ChildLine)
+
+m00 = ParentLine(1) - ParentLine(3);
+m01 = -(ChildLine(1) - ChildLine(3));
+m10 = ParentLine(2) - ParentLine(4);
+m11 = -(ChildLine(2) - ChildLine(4));
+
+det = m00*m11 - m01*m10;
+
+if(abs(det) < 1e-10)
+    x = NaN;
+    y = NaN;
+    return;
+end
+
+i00 = m11/det;
+i01 = m01/det;
+
+b00 = ChildLine(1) - ParentLine(1);
+b10 = ChildLine(2) - ParentLine(2);
+
+x00 = i00*b00 + i01*b10;
+
+x = dx*x00+ParentLine(1);
+y = dy*x00+ParentLine(2);
+end
+
+function [x,y] = OpticalCenter(height,width)
+x = round(width/2);
+y = round(width/2);
+end
 
 function output = NormalizeVals(input,Max,Min)
     switch nargin
@@ -71,108 +116,4 @@ function output = NormalizeVals(input,Max,Min)
         otherwise
             output = (input-Min)./(Max-Min);
     end
-end
-
-function FoundEdges = EdgeFunction(Magnitude, Direction, MagThr)
-Magnitude(Magnitude <= MagThr) = 0;%Makes sure all edges are above threshold
-figure;
-imshow(Magnitude);
-FoundEdges = CalcEdges(Magnitude, Direction);
-end
-
-function lines = Segmenter(image_clusters,Theta,image_grey)
-MinDist = 4;
-Cluster_Num = unique(image_clusters(:,4)); %Gets each unique cluster
-
-segments = []; %Array for holding segments
-current_num = 1; %holds the offset of the where we're grabbing clusters
-figure;
-imshow(image_grey);
-hold on;
-for i = 1:size(Cluster_Num)
-    num_of_pts = size(find(image_clusters(:,4) == Cluster_Num(i)),1);
-    
-    temp = image_clusters(current_num:num_of_pts+current_num - 1,:); %Get all the points in that cluster
-    
-    LineTemp = Line2D(temp(:,1),temp(:,2),temp(:,3));                %Find the line created by those points
-    
-    if(MinDist < Pt2PtDist(LineTemp(1,1),LineTemp(1,2),LineTemp(1,3),LineTemp(1,4)))
-        segments = [segments;LineTemp]; %Add to the good segments
-        plot([LineTemp(1),LineTemp(3)],[LineTemp(2),LineTemp(4)],'-r'); %plot the segment
-    end
-    
-    current_num = current_num + num_of_pts; %Add to the offset
-end
-hold off;
-
-lines = segments; %Export those segments
-
-end
-
-function line = Line2D(x,y,w)
-weightedX = x .* w; %Weights all the x components
-weightedY = y .* w; %Weights all the y components
-
-mX = sum(weightedX); %Sums all the weighted x components
-mY = sum(weightedY); %Sums all the weighted y components
-
-
-mXX = sum(weightedX .* x); %Weighted sum of x squares
-mYY = sum(weightedY .* y); %Weighted sum of y squares
-mXY = sum(weightedY .* x); %Weighted sum of xy product
-n = sum(w);                %Sum of weights
-
-Ex  = mX/n;
-Ey  = mY/n;
-Cxx = (mXX/n) - Ex^2; 
-Cyy = (mYY/n) - Ey^2;
-Cxy = (mXY/n) - (Ex*Ey);
-
-phi = 0.5*atan2(-2*Cxy,(Cyy-Cxx)); %Uses SVD to find direction
-
-dx = -sin(phi); %Change in x
-dy =  cos(phi); %Change in y
-xp = round(Ex); %Rounded X point on line
-yp = round(Ey); %Rounded Y point on line
-
-[xp,yp,dx,dy] = normalizeP(dx,dy,xp,yp); %Normalize the point
-
-line_coord = GetLineCoord(x,y,dx,dy);    %Get each coordinate on the line from our data set
-
-maxcoord = max(line_coord); %Find the end of the line
-mincoord = min(line_coord); %Find the beginning of the line
-
-[max_x, max_y] = GetPtCoord(xp,yp,dx,dy,maxcoord); %Find where the beginning is on the line
-[min_x, min_y] = GetPtCoord(xp,yp,dx,dy,mincoord); %Find where the end is on the line
-
-line = [min_x,min_y,max_x,max_y,0,0];
-end
-
-function [y,x] = GetPtCoord(xp,yp,dx,dy,coord)
-x = round(xp + coord*dx);
-y = round(yp + coord*dy);
-end
-
-function coord = GetLineCoord(x,y,dx,dy)
-coord = x*dx + y*dy;
-end
-
-function [xn,yn,dx,dy] = normalizeP(dx,dy,x,y)
-[dx,dy] = normalizeSlope(dx,dy);
-dotprod = -dy*x + dx*y;
-
-xn = dotprod * -dy;
-yn = dotprod * dx;
-end
-
-function [dx,dy] = normalizeSlope(dx,dy)
-mag = sqrt(dx^2+dy^2);
-dx = dx / mag;
-dy = dy / mag;
-end
-
-function distance = Pt2PtDist(P1x,P1y,P2x,P2y)
-dx = P1x - P2x;
-dy = P1y - P2y;
-distance = sqrt(dx^2 + dy^2);
 end
