@@ -10,7 +10,7 @@ real = '../pics/real_life_tag.png';
 
 Debug_Gradient = 0;
 tStart = tic;
-image = imread(tag);
+image = imread(ref);
 figure('Name','Original Image');
 imshow(image);
 title('Original Image');
@@ -70,39 +70,9 @@ tStep5 = toc(tStart) - tStep3_4
 
 %Stage 6: Chain Segments
 linked_segments = LinkSegs(FoundSegs);
+tStep6 = toc(tStart) - tStep5
 
 tElapsed = toc(tStart)
-
-function linked_segments = LinkSegs(Segments)
-
-end
-
-function [x, y] = IntersectionWith(ParentLine, ChildLine)
-
-m00 = ParentLine(1) - ParentLine(3);
-m01 = -(ChildLine(1) - ChildLine(3));
-m10 = ParentLine(2) - ParentLine(4);
-m11 = -(ChildLine(2) - ChildLine(4));
-
-det = m00*m11 - m01*m10;
-
-if(abs(det) < 1e-10)
-    x = NaN;
-    y = NaN;
-    return;
-end
-
-i00 = m11/det;
-i01 = m01/det;
-
-b00 = ChildLine(1) - ParentLine(1);
-b10 = ChildLine(2) - ParentLine(2);
-
-x00 = i00*b00 + i01*b10;
-
-x = dx*x00+ParentLine(1);
-y = dy*x00+ParentLine(2);
-end
 
 function [x,y] = OpticalCenter(height,width)
 x = round(width/2);
