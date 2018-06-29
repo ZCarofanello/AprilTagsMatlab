@@ -10,7 +10,7 @@ real = '../pics/real_life_tag.png';
 
 Debug_Gradient = 0;
 tStart = tic;
-image = imread(ref);
+image = imread(tag);
 figure('Name','Original Image');
 imshow(image);
 title('Original Image');
@@ -72,6 +72,9 @@ tStep5 = toc(tStart) - tStep3_4
 linked_segments = LinkSegs(FoundSegs);
 tStep6 = toc(tStart) - tStep5
 
+%Stage 7: Find Quads
+quads = QuadDetection(linked_segments,FoundSegs);
+
 tElapsed = toc(tStart)
 
 function [x,y] = OpticalCenter(height,width)
@@ -86,4 +89,8 @@ function output = NormalizeVals(input,Max,Min)
         otherwise
             output = (input-Min)./(Max-Min);
     end
+end
+
+function quads = QuadDetection(linked_segments,FoundSegs)
+quads = [];
 end

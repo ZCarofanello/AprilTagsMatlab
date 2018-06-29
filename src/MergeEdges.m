@@ -1,6 +1,6 @@
 function Clusters = MergeEdges(Edges,Magnitude,Direction)
     %Constants to export sometime
-    thetaThr = 120;
+    thetaThr = 100;
     magThr = 1200;
     
     %Get the width and height of the iamge
@@ -41,14 +41,18 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
         tminab = min(tmina, tminb+bshift); %Theta min
         tmaxab = max(tmaxa, tmaxb+bshift); %Theta max
         
+        if(tmaxab-tminab > 2*pi)
+            tmaxab = tminab + 2*pi;
+        end
+        
         mminab = min(mmin(ida), mmin(idb)); %Mag min
         mmaxab = max(mmax(ida), mmax(idb)); %Mag max
         
         costab = (tmaxab - tminab); %Intermediate cost value for a and b
         
         %Magic Values that I need to understand more :)
-        Value1 = (costab <= min(costa,costb) + thetaThr/(sza+szb));
-        Value2 = (mmaxab-mminab) <= min(mmax(ida)-mmin(ida), mmax(idb)-mmin(idb)) + magThr/(sza+szb);
+        Value1 = (costab <= min(costa,costb) + (thetaThr/(sza+szb)));
+        Value2 = (mmaxab-mminab) <= min(mmax(ida)-mmin(ida), mmax(idb)-mmin(idb)) + (magThr/(sza+szb));
         
         if(Value1 && Value2)
             [SimpleUF, idab] = connectNodes(SimpleUF, ida, idb);
@@ -61,7 +65,6 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
         end
     end
     %Not terribly accurate because this is taking simple difference
-    %VisualizeClusters(SimpleUF,width,height);
     
     %Export the clusters
     Clusters = ExportClusters(SimpleUF,Magnitude, Edges);

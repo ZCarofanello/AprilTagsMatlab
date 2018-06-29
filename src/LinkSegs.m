@@ -1,18 +1,22 @@
 function linked_segments = LinkSegs(Segments)
 StartPoints = [Segments(:,1),Segments(:,2)];
 EndPoints   = [Segments(:,3),Segments(:,4)];
-[ValidPts, Distance] = knnsearch(StartPoints,EndPoints,'K',50);
+Ranges = abs(Segments(:,6));
+for j = 1:size(Ranges,2)
+    ValidPts = [ValidPts;rangesearch(StartPoints(j,:),EndPoints(j,:),Ranges(j,:))] ;
+end
 linked_segments = struct([]);
 for i = 1:size(Segments,1)
-   tmp = CheckSuccessor(i,ValidPts(i,:)',Distance(i,:)',Segments);
+   tmp = CheckSuccessor(i,ValidPts(i,:)',Segments);
    linked_segments = [linked_segments; tmp];
 end
 end
 
-function LinkedSegments = CheckSuccessor(Pos,PossibleIdx, Distances, SegmentList)
+function LinkedSegments = CheckSuccessor(Pos,PossibleIdx, SegmentList)
 LinkedSegments = struct('SegNum',Pos,'LSeg',[]);
 
-GoodPts = PossibleIdx(Distances < SegmentList(Pos,6));
+%GoodPts = PossibleIdx(Distances < 2*SegmentList(Pos,6));
+GoodPts = PossibleIdx;
 ValidPts = [];
 for i = 1:size(GoodPts)
     if(mod2pi(SegmentList(GoodPts(i),5) - SegmentList(Pos,5)) > 0)
@@ -38,7 +42,7 @@ ParentDist = Pt2PtDist(ParentLine(3),ParentLine(4),IntersectionPts(:,1),Intersec
 ChildDist  = Pt2PtDist(ChildLine(:,1),ChildLine(:,2),IntersectionPts(:,1),IntersectionPts(:,2));
 
 for i = 1:size(ParentDist,2)
-    if(max(ParentDist(i),ChildDist(i)) < SegmentList(Pos,6))
+    if(max(ParentDist(i),ChildDist(i)) < 2*SegmentList(Pos,6))
         LinkedSegments.LSeg = [LinkedSegments.LSeg, ValidPts(i)];
     end
 end
