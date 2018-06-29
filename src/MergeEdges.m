@@ -1,7 +1,7 @@
 function Clusters = MergeEdges(Edges,Magnitude,Direction)
     %Constants to export sometime
-    thetaThr = 100;
-    magThr = 1200;
+    thetaThr = 200;
+    magThr = 2000;
     
     %Get the width and height of the iamge
     width = size(Magnitude,2);
@@ -14,7 +14,7 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
     mmax = reshape(Magnitude,1,[]);
     
     %Create the unionfind vector which is pre allocated for speed
-    SimpleUF = [(1:width*height); ones(1,width*height)];
+    SimpleUF = [(1:width*height)', ones(1,width*height)'];
     
     for i = 1:size(Edges,1)
         ida = Edges(i,2);
@@ -27,8 +27,8 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
             continue;
         end
         
-        sza = SimpleUF(2,ida); %Get the size of tree a
-        szb = SimpleUF(2,idb); %Get the size of tree b
+        sza = SimpleUF(ida,2); %Get the size of tree a
+        szb = SimpleUF(idb,2); %Get the size of tree b
         
         tmina = tmin(ida); tmaxa = tmax(ida); %finds the max and mins of a
         tminb = tmin(idb); tmaxb = tmax(idb); %finds the max and mins of b
@@ -72,11 +72,11 @@ end
 
 % Gets the representative of the node
 function [root,UpdatedArray] = getRepresentative(UFArray,NodeId)
-    if(UFArray(1,NodeId) == NodeId) %If it is it's own rep return
-        root = NodeId;          %No changes
+    if(UFArray(NodeId,1) == NodeId) %If it is it's own rep return
+        root = NodeId;              %No changes
     else
-        root = getRepresentative(UFArray,UFArray(1,NodeId)); %Recurse
-        UFArray(1,NodeId) = root; %Flatten the tree
+        root = getRepresentative(UFArray,UFArray(NodeId,1)); %Recurse
+        UFArray(NodeId,1) = root; %Flatten the tree
     end
 UpdatedArray = UFArray;   %Return the updated array
 end
@@ -93,14 +93,16 @@ function [NewUFArray,root] = connectNodes(UFArray, aId,bId)
         return;
     end
     
-    if(UFArray(2,aRoot) > UFArray(2,bRoot)) %Larger tree wins!
-        NewUFArray(1,bRoot) = aRoot; %Set the new root
-        NewUFArray(2,aRoot) = NewUFArray(2,aRoot) + NewUFArray(2,bRoot); %Add the sizes together
+    if(UFArray(aRoot,2) > UFArray(bRoot,2)) %Larger tree wins!
+        NewUFArray(bRoot,1) = aRoot; %Set the new root
+        NewUFArray = FlattenTree(bRoot,aRoot,NewUFArray);
+        NewUFArray(aRoot,2) = NewUFArray(aRoot,2) + NewUFArray(bRoot,2); %Add the sizes together
         root=aRoot; %Return the new root
         return;
      else
-        NewUFArray(1,aRoot) = bRoot; %Set the new root
-        NewUFArray(2,bRoot) = NewUFArray(2,aRoot) + NewUFArray(2,bRoot); %Add the sizes together
+        NewUFArray(aRoot,1) = bRoot; %Set the new root
+        NewUFArray = FlattenTree(aRoot,bRoot,NewUFArray);
+        NewUFArray(bRoot,2) = NewUFArray(aRoot,2) + NewUFArray(bRoot,2); %Add the sizes together
         root=bRoot; %Return the new root
         return;
     end
@@ -112,16 +114,16 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
     MinCluster = 4;
 
     %find clusters that have more than the MinSeg
-    Valid_Clusters = UF_Array(1,(UF_Array(2,:) >= MinCluster));
+    Valid_Clusters = UF_Array((UF_Array(:,2) >= MinCluster),1);
 
     %Create a logical array for faster indexing / display
-    logical_arr = ismember(UF_Array(1,:),Valid_Clusters);
+    logical_arr = ismember(UF_Array(:,1),Valid_Clusters);
     
     ClusterList = [];
     FirstEntry = true;
     for i = 1:size(Edges,1)-1
         if(logical_arr(Edges(i,2)))
-            EdgeCluster = UF_Array(1,Edges(i,2));
+            EdgeCluster = UF_Array(Edges(i,2),1);
             EdgeMag = Magnitude(Edges(i,4),Edges(i,5));
             EdgeX = Edges(i,4);
             EdgeY = Edges(i,5);
@@ -149,5 +151,14 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
         plot(temp(:,2),temp(:,1),'*');
         current_num = current_num + num_of_pts; %Add to the offset
     end
+end
 
+function FixedTree = FlattenTree(OldRoot,NewRoot,UF_Array)
+Children_Idx = FindChildren(UF_Array,OldRoot);
+UF_Array(Children_Idx,1) = NewRoot;
+FixedTree = UF_Array;
+end
+
+function Nodes = FindChildren(UF_Array, ParentIdx)
+Nodes = find(UF_Array(:,1) == ParentIdx);
 end

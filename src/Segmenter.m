@@ -23,7 +23,7 @@ for i = 1:size(Cluster_Num)
         segments = [segments;LineTemp]; %Add to the good segments
         LineColor = abs(LineTemp(5))/(2*pi);
         plot([LineTemp(1),LineTemp(3)],[LineTemp(2),LineTemp(4)],'Color',[146/255,LineColor,1]); %plot the segment
-        text(LineTemp(1),LineTemp(2),sprintf('Line# %i',LineNum));
+        text(LineTemp(1),LineTemp(2),sprintf('Line# %i',LineNum),'Color','red');
         LineNum = LineNum + 1;
     end
     

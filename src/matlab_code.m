@@ -6,7 +6,7 @@ bike = '../pics/bikesgray.jpg';
 tag = '../pics/test_tag.png';
 ref = '../pics/tag_middle.png';
 real = '../pics/real_life_tag.png';
-
+real2 = '../pics/real_life_tag2.jpg';
 
 Debug_Gradient = 0;
 tStart = tic;
@@ -28,7 +28,8 @@ imshow(image_gray);
 title('Preprocessing: Grayscale');
 
 %Stage 1: Gaussian Blurring 
-image_blurred = imgaussfilt(image_gray, 0.8);
+image_blurred = imgaussfilt(image_gray, 2.4,'FilterDomain','spatial');
+%image_blurred = imgaussfilt(image_blurred, 2.4);
 figure('Name','Stage 1:Gaussian Blurring');
 imshow(image_blurred);
 title('Stage 1:Gaussian Blurring');
@@ -65,15 +66,15 @@ image_clusters = CalcEdges(gm,gd,50);
 tStep3_4 = toc(tStart) - tStep2
 %Stage 5: Segmentation (Need to add the 
 MinCluster = 4;
-FoundSegs   = Segmenter(image_clusters,gd,image_gray);
+%FoundSegs   = Segmenter(image_clusters,gd,image_gray);
 tStep5 = toc(tStart) - tStep3_4
 
 %Stage 6: Chain Segments
-linked_segments = LinkSegs(FoundSegs);
+%linked_segments = LinkSegs(FoundSegs);
 tStep6 = toc(tStart) - tStep5
 
 %Stage 7: Find Quads
-quads = QuadDetection(linked_segments,FoundSegs);
+%quads = QuadDetection(linked_segments,FoundSegs);
 
 tElapsed = toc(tStart)
 
