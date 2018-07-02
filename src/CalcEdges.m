@@ -1,23 +1,22 @@
 function Edge = CalcEdges(Magnitude, Direction, MagThr)
-    Magnitude(Magnitude <= MagThr) = 0;%Makes sure all edges are above threshold
-    
+    %Magnitude(Magnitude <= MagThr) = 0;%Makes sure all edges are above threshold
+    MinMag = MagThr;
     height = size(Magnitude,1);
     width = size(Magnitude,2);
     Edge = [];
     FirstEntry = true;
-    for x = 2:width-2
-        for y = 2:height-2
-            if(x == 325 && y == 152)
-                AHH = 0;
-            end
+    for x = 2:height-2
+        for y = 2:width-2
+            if(Magnitude(x,y) > MinMag)
             
             %Cost1
-            if(Magnitude(y,x+1) ~= 0)
-                E_Cost = EdgeCost(Direction(y,x),Direction(y,x+1));
+            %if(Magnitude(y,x+1) ~= 0)
+             if(Magnitude(x+1,y) > MinMag)
+                E_Cost = EdgeCost(Direction(x,y),Direction(x+1,y));
                 if(E_Cost >= 0)
                     Cost = double(E_Cost);
-                    IdA  = y*width+x;
-                    IdB  = y*width+(x+1);
+                    IdA  = y*height+x;
+                    IdB  = y*height+(x+1);
                     Point = [y,x+1];
                     
                     if(FirstEntry)
@@ -29,12 +28,13 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
                 end
             end
             %Cost2
-            if(Magnitude(y+1,x) ~= 0)
-                E_Cost = EdgeCost(Direction(y,x),Direction(y+1,x));
+            %if(Magnitude(y+1,x) ~= 0)
+            if(Magnitude(x,y+1) > MinMag)
+                E_Cost = EdgeCost(Direction(x,y+1),Direction(x,y+1));
                 if(E_Cost >= 0)
                     Cost = double(E_Cost);
-                    IdA  = y*width+x;
-                    IdB  = (y+1)*width+(x);  
+                    IdA  = y*height+x;
+                    IdB  = (y+1)*height+(x);  
                     Point = [y+1,x];
                     
                     if(FirstEntry)
@@ -46,12 +46,13 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
                 end
             end
             %Cost3
-            if(Magnitude(y+1,x+1) ~= 0)
-                E_Cost = EdgeCost(Direction(y,x),Direction(y+1,x+1));
+            %if(Magnitude(y+1,x+1) ~= 0)
+            if(Magnitude(x+1,y+1) > MinMag)
+                E_Cost = EdgeCost(Direction(x,y),Direction(x+1,y+1));
                 if(E_Cost >= 0)
                     Cost = double(E_Cost);
-                    IdA  = y*width+x;
-                    IdB  = (y+1)*width+(x+1); 
+                    IdA  = y*height+x;
+                    IdB  = (y+1)*height+(x+1); 
                     Point = [y+1,x+1];
                     
                     if(FirstEntry)
@@ -63,13 +64,14 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
                 end
             end
             %Cost4
-            if(Magnitude(y-1,x+1) ~= 0 && y ~= 2)
-                E_Cost = EdgeCost(Direction(y,x),Direction(y-1,x+1));
+            %if(Magnitude(y-1,x+1) ~= 0 && y ~= 2)
+            if(Magnitude(x-1,y+1) > MinMag && x ~= 2)
+                E_Cost = EdgeCost(Direction(x,y),Direction(x-1,y+1));
                 if(E_Cost >= 0)
                 	Cost = double(E_Cost);
-                    IdA  = y*width+x;
-                    IdB  = (y-1)*width+(x+1);  
-                    Point = [y-1,x+1];
+                    IdA  = y*height+x;
+                    IdB  = (y+1)*height+(x-1);  
+                    Point = [y+1,x-1];
                     
                     if(FirstEntry)
                         Edge = [Cost,IdA,IdB,Point];
@@ -78,6 +80,7 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
                         Edge = [Edge;Cost,IdA,IdB,Point];
                     end
                 end
+            end
             end
         end
     end
@@ -95,12 +98,12 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
 end
 
 function cost = EdgeCost(Theta0,Theta1)
-maxEdgeCost = (30 * pi()) / 180;
+maxEdgeCost = (30 * pi) / 180;
 cost = abs(mod2pi(Theta1 - Theta0));
 if(cost > maxEdgeCost)
     cost = int16(-1);
     return;
 end
 cost = cost / maxEdgeCost;
-cost = int16(cost * 100);
+cost = floor(cost * 100);
 end

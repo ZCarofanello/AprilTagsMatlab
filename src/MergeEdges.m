@@ -1,7 +1,7 @@
 function Clusters = MergeEdges(Edges,Magnitude,Direction)
     %Constants to export sometime
     thetaThr = 200;
-    magThr = 2000;
+    magThr = 1200;
     
     %Get the width and height of the iamge
     width = size(Magnitude,2);
@@ -36,7 +36,7 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
         costa = tmaxa-tmina; %Intermediate cost value
         costb = tmaxb-tminb; %Intermediate cost value
         
-        bshift = mod2pi((tmina+tmaxa)/2, (tminb+tmaxb)/2) - (tminb+tmaxb)/2; %Makes sure that the angles aren't more than +/- PI
+        bshift = mod2pi((tminb+tmaxb)/2, (tmina+tmaxa)/2) - (tminb+tmaxb)/2; %Makes sure that the angles aren't more than +/- PI
         
         tminab = min(tmina, tminb+bshift); %Theta min
         tmaxab = max(tmaxa, tmaxb+bshift); %Theta max
@@ -64,8 +64,6 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
             mmin(idab) = mmaxab;
         end
     end
-    %Not terribly accurate because this is taking simple difference
-    
     %Export the clusters
     Clusters = ExportClusters(SimpleUF,Magnitude, Edges);
 end
@@ -108,6 +106,16 @@ function [NewUFArray,root] = connectNodes(UFArray, aId,bId)
     end
 end
 
+function FixedTree = FlattenTree(OldRoot,NewRoot,UF_Array)
+Children_Idx = FindChildren(UF_Array,OldRoot);
+UF_Array(Children_Idx,1) = NewRoot;
+FixedTree = UF_Array;
+end
+
+function Nodes = FindChildren(UF_Array, ParentIdx)
+Nodes = find(UF_Array(:,1) == ParentIdx);
+end
+
 %Formatting the clusters as a list with points to make it easier later
 function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
     %Need to export these constants
@@ -115,6 +123,11 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
 
     %find clusters that have more than the MinSeg
     Valid_Clusters = UF_Array((UF_Array(:,2) >= MinCluster),1);
+    
+    for k = 1:length(Valid_Clusters)
+        root = getRepresentative(UF_Array,Valid_Clusters(k));
+        UF_Array = FlattenTree(Valid_Clusters(k),root,UF_Array);
+    end
 
     %Create a logical array for faster indexing / display
     logical_arr = ismember(UF_Array(:,1),Valid_Clusters);
@@ -124,9 +137,9 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
     for i = 1:size(Edges,1)-1
         if(logical_arr(Edges(i,2)))
             EdgeCluster = UF_Array(Edges(i,2),1);
-            EdgeMag = Magnitude(Edges(i,4),Edges(i,5));
-            EdgeX = Edges(i,4);
-            EdgeY = Edges(i,5);
+            EdgeMag = Magnitude(Edges(i,5),Edges(i,4));
+            EdgeX = Edges(i,5);
+            EdgeY = Edges(i,4);
             if(FirstEntry)
                 ClusterList = [EdgeX,EdgeY,EdgeMag,EdgeCluster];
                 FirstEntry = false;
@@ -135,30 +148,7 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
             end
         end
     end
-
-    ClusterList = sortrows(ClusterList,4);
-    
     Cluster_Num = unique(ClusterList(:,4)); %Gets each unique cluster
 
-    current_num = 1; %holds the offset of the where we're grabbing clusters
-    
-    figure;
-    imshow(Magnitude);
-    hold on;
-    for i = 1:size(Cluster_Num)
-        num_of_pts = size(find(ClusterList(:,4) == Cluster_Num(i)),1);
-        temp = ClusterList(current_num:num_of_pts+current_num - 1,:);
-        plot(temp(:,2),temp(:,1),'*');
-        current_num = current_num + num_of_pts; %Add to the offset
-    end
-end
-
-function FixedTree = FlattenTree(OldRoot,NewRoot,UF_Array)
-Children_Idx = FindChildren(UF_Array,OldRoot);
-UF_Array(Children_Idx,1) = NewRoot;
-FixedTree = UF_Array;
-end
-
-function Nodes = FindChildren(UF_Array, ParentIdx)
-Nodes = find(UF_Array(:,1) == ParentIdx);
+    ClusterList = sortrows(ClusterList,4);
 end

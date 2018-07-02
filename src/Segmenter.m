@@ -23,7 +23,7 @@ for i = 1:size(Cluster_Num)
         segments = [segments;LineTemp]; %Add to the good segments
         LineColor = abs(LineTemp(5))/(2*pi);
         plot([LineTemp(1),LineTemp(3)],[LineTemp(2),LineTemp(4)],'Color',[146/255,LineColor,1]); %plot the segment
-        text(LineTemp(1),LineTemp(2),sprintf('Line# %i',LineNum),'Color','red');
+        text(double(LineTemp(1)),double(LineTemp(2)),sprintf('Line# %i',LineNum),'Color','red');
         LineNum = LineNum + 1;
     end
     
@@ -108,15 +108,14 @@ dx = LineTemp(3) - LineTemp(1); %Find the change in x
 dy = LineTemp(4) - LineTemp(2); %Find the change in y
 
 tmpTheta = atan2(dy,dx);        %Temp direction of the line
-theta = gd(temp(:,1),temp(:,2));%Get all the thetas of the line
-
-err = mod2pi(theta - tmpTheta); %Calculate the error of our assumed direction
-
 %Variables for our votes
 noflip = 0;
 flip = 0;
 for i = 1:size(temp)
-   if(err(i) < 0) %If the error is negative vote for no flip
+    theta = gd(temp(i,1),temp(i,2));%Get all the thetas of the line
+    err = mod2pi(theta - tmpTheta); %Calculate the error of our assumed direction
+    
+   if(err > 0) %If the error is negative vote for no flip
        noflip = noflip + temp(i,3);
    else           %If the error is positive vote for to flip
        flip = flip + temp(i,3);
