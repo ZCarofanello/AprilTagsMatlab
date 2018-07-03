@@ -5,10 +5,12 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
     width = size(Magnitude,2);
     Edge = [];
     FirstEntry = true;
-    for x = 2:height-2
-        for y = 2:width-2
+    for x = 5:height-5
+        for y = 5:width-5
             if(Magnitude(x,y) > MinMag)
-            
+            if(x == 286 && y == 170)
+                AHH = 0;
+            end
             %Cost1
             %if(Magnitude(y,x+1) ~= 0)
              if(Magnitude(x+1,y) > MinMag)
@@ -81,6 +83,9 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
                     end
                 end
             end
+            end
+            if(length(Edge) >= 21208)
+                AHHH = 0;
             end
         end
     end

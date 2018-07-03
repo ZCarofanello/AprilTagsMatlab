@@ -1,6 +1,6 @@
 function Clusters = MergeEdges(Edges,Magnitude,Direction)
     %Constants to export sometime
-    thetaThr = 200;
+    thetaThr = 100;
     magThr = 1200;
     
     %Get the width and height of the iamge
@@ -93,13 +93,13 @@ function [NewUFArray,root] = connectNodes(UFArray, aId,bId)
     
     if(UFArray(aRoot,2) > UFArray(bRoot,2)) %Larger tree wins!
         NewUFArray(bRoot,1) = aRoot; %Set the new root
-        NewUFArray = FlattenTree(bRoot,aRoot,NewUFArray);
+        %NewUFArray = FlattenTree(bRoot,aRoot,NewUFArray);
         NewUFArray(aRoot,2) = NewUFArray(aRoot,2) + NewUFArray(bRoot,2); %Add the sizes together
         root=aRoot; %Return the new root
         return;
      else
         NewUFArray(aRoot,1) = bRoot; %Set the new root
-        NewUFArray = FlattenTree(aRoot,bRoot,NewUFArray);
+        %NewUFArray = FlattenTree(aRoot,bRoot,NewUFArray);
         NewUFArray(bRoot,2) = NewUFArray(aRoot,2) + NewUFArray(bRoot,2); %Add the sizes together
         root=bRoot; %Return the new root
         return;

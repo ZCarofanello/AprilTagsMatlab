@@ -42,7 +42,7 @@ ParentDist = Pt2PtDist(ParentLine(3),ParentLine(4),IntersectionPts(:,1),Intersec
 ChildDist  = Pt2PtDist(ChildLine(:,1),ChildLine(:,2),IntersectionPts(:,1),IntersectionPts(:,2));
 
 for i = 1:size(ParentDist,1)
-    if(max(ParentDist(i),ChildDist(i)) < 2*SegmentList(Pos,6))
+    if(max(ParentDist(i),ChildDist(i)) < SegmentList(Pos,6))
         LinkedSegments.LSeg = [LinkedSegments.LSeg, ValidPts(i)];
     end
 end
