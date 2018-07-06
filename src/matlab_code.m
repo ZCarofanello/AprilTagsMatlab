@@ -116,8 +116,9 @@ tStep3_4 = toc(tStart) - tStep2
 Cluster_Num = unique(image_clusters(:,4)); %Gets each unique cluster
 current_num = 1; %holds the offset of the where we're grabbing clusters
 
-    figure;
+    figure('Name','Grouped Segments');
     imshow(image_gray);
+    title('Grouped Segments');
     hold on;
     for i = 1:size(Cluster_Num)
         num_of_pts = size(find(image_clusters(:,4) == Cluster_Num(i)),1);
@@ -139,21 +140,233 @@ tStep6 = toc(tStart) - tStep5
 %Stage 7: Find Quads
 quads = QuadDetection(linked_segments,FoundSegs);
 
+    figure('Name','Detected Quads with intersections');
+    imshow(image_gray);
+    title('Detected Quads with intersections');
+    hold on;
+    for i = 1:size(quads,1)
+        Seg1 = [quads(i,1),quads(i,3); quads(i,2), quads(i,4)];
+        Seg2 = [quads(i,3),quads(i,5); quads(i,4), quads(i,6)];
+        Seg3 = [quads(i,5),quads(i,7); quads(i,6), quads(i,8)];
+        Seg4 = [quads(i,7),quads(i,1); quads(i,8), quads(i,2)];
+        
+        plot(Seg1(1,:),Seg1(2,:),'r-');
+        plot(Seg2(1,:),Seg2(2,:),'r-');
+        plot(Seg3(1,:),Seg3(2,:),'r-');
+        plot(Seg4(1,:),Seg4(2,:),'r-');
+        scatter([quads(i,1),quads(i,3),quads(i,5),quads(i,7)],[quads(i,2),quads(i,4),quads(i,6),quads(i,8)],15,'go');
+    end
+
+%Stage 8: Decode Quads
+quads = DecodeQuad(quads,FoundSegs,RefBw);
+
 tElapsed = toc(tStart)
 
-function [x,y] = OpticalCenter(height,width)
-x = round(width/2);
-y = round(width/2);
+function quads = DecodeQuad(quads,FoundSegs,RefBw)
+%Constants to export
+blackBorder = 1; dimension = 6;
+
+OC = OpticalCenter(size(RefBw,1),size(RefBw,2));
+for i = 1:size(quads,1)
+    %Initalizing the Homography for this quad
+    Quad_H33 = H33_Init(OC);
+    %Quad_H33 = H33_AddCorrespondence(-1,-1,quads(1,i),
+
+    dd = 2 * blackBorder + dimension;
+
+    for iy = -1:dd
+        y = (iy + 0.5) / dd;
+        for ix = -1:dd
+            x = (ix + 0.5) / dd;
+        end
+    end
 end
 
-function GrayImage = cvtColor(InputImage)
-RedConv   = single(InputImage(:,:,1) *  0.299);
-GreenConv = single(InputImage(:,:,2) *  0.587);
-BlueConv  = single(InputImage(:,:,3) *  0.114);
 
-GrayImage = RedConv + GreenConv + BlueConv;
-GrayImage = GrayImage / 255;
 end
+
+function Homography = H33_Init(OpticalCenter)
+Homography = struct('cxy',OpticalCenter,'fA',[],'H',[],'Valid',[]);
+Homography.fA = zeros(9);
+Homography.H  = zeros(3);
+Homography.Valid = false;
+end
+
+
+function H33_struct = H33_AddCorrespondence(Worldx, Worldy, Imagex, Imagey, H33_struct)
+H33_struct.Valid = false;
+Imagex = Imagex - H33_struct.cxy(1);
+Imagey = Imagey - H33_struct.cxy(2);
+
+a03 = -worldx;
+a04 = -worldy;
+a05 = -1;
+a06 = worldx*imagey;
+a07 = worldy*imagey;
+a08 = imagey;
+
+H33_struct.fA(4,4) = H33_struct.fA(4,4) + a03*a03;
+H33_struct.fA(4,5) = H33_struct.fA(4,5) + a03*a04;
+H33_struct.fA(4,6) = H33_struct.fA(4,6) + a03*a05;
+H33_struct.fA(4,7) = H33_struct.fA(4,7) + a03*a06;
+H33_struct.fA(4,8) = H33_struct.fA(4,8) + a03*a07;
+H33_struct.fA(4,9) = H33_struct.fA(4,9) + a03*a08;
+
+H33_struct.fA(5,5) = H33_struct.fA(5,5) + a04*a04;
+H33_struct.fA(5,6) = H33_struct.fA(5,6) + a04*a05;
+H33_struct.fA(5,7) = H33_struct.fA(5,7) + a04*a06;
+H33_struct.fA(5,8) = H33_struct.fA(5,8) + a04*a07;
+H33_struct.fA(5,9) = H33_struct.fA(5,9) + a04*a08;
+                                          
+H33_struct.fA(6,6) = H33_struct.fA(6,6) + a05*a05;
+H33_struct.fA(6,7) = H33_struct.fA(6,7) + a05*a06;
+H33_struct.fA(6,8) = H33_struct.fA(6,8) + a05*a07;
+H33_struct.fA(6,9) = H33_struct.fA(6,9) + a05*a08;
+                                          
+H33_struct.fA(7,7) = H33_struct.fA(7,7) + a06*a06;
+H33_struct.fA(7,8) = H33_struct.fA(7,8) + a06*a07;
+H33_struct.fA(7,9) = H33_struct.fA(7,9) + a06*a08;
+                                          
+H33_struct.fA(8,8) = H33_struct.fA(8,8) + a07*a07;
+H33_struct.fA(8,9) = H33_struct.fA(8,9) + a07*a08;
+                                          
+H33_struct.fA(9,9) = H33_struct.fA(9,9) + a08*a08;
+
+a10 = Worldx;
+a11 = Worldy;
+a12 = 1;
+a16 = -Worldx*Imagex;
+a17 = -Worldy*Imagex;
+a18 = -Imagex;
+
+H33_struct.fA(1,1) = H33_struct.fA(1,1) + a10*a10;
+H33_struct.fA(1,2) = H33_struct.fA(1,2) + a10*a11;
+H33_struct.fA(1,3) = H33_struct.fA(1,3) + a10*a12;
+H33_struct.fA(1,7) = H33_struct.fA(1,7) + a10*a16;
+H33_struct.fA(1,8) = H33_struct.fA(1,8) + a10*a17;
+H33_struct.fA(1,9) = H33_struct.fA(1,9) + a10*a18;
+                      
+H33_struct.fA(2,2) = H33_struct.fA(2,2) + a11*a11;
+H33_struct.fA(2,3) = H33_struct.fA(2,3) + a11*a12;
+H33_struct.fA(2,7) = H33_struct.fA(2,7) + a11*a16;
+H33_struct.fA(2,8) = H33_struct.fA(2,8) + a11*a17;
+H33_struct.fA(2,9) = H33_struct.fA(2,9) + a11*a18;
+                      
+H33_struct.fA(3,3) = H33_struct.fA(3,3) + a12*a12;
+H33_struct.fA(3,7) = H33_struct.fA(3,7) + a12*a16;
+H33_struct.fA(3,8) = H33_struct.fA(3,8) + a12*a17;
+H33_struct.fA(3,9) = H33_struct.fA(3,9) + a12*a18;
+                      
+H33_struct.fA(7,7) = H33_struct.fA(7,7) + a16*a16;
+H33_struct.fA(7,8) = H33_struct.fA(7,8) + a16*a17;
+H33_struct.fA(7,9) = H33_struct.fA(7,9) + a16*a18;
+                      
+H33_struct.fA(8,8) = H33_struct.fA(8,8) + a17*a17;
+H33_struct.fA(8,9) = H33_struct.fA(8,9) + a17*a18;
+                      
+H33_struct.fA(9,9) = H33_struct.fA(9,9) + a18*a18;
+
+a20 = -Worldx*Imagey;
+a21 = -Worldy*Imagey;
+a22 = -Imagey;
+a23 = Worldx*Imagex;
+a24 = Worldy*Imagex;
+a25 = Imagex;
+
+H33_struct.fA(1,1) = H33_struct.fA(1,1) + a20*a20;
+H33_struct.fA(1,2) = H33_struct.fA(1,2) + a20*a21;
+H33_struct.fA(1,3) = H33_struct.fA(1,3) + a20*a22;
+H33_struct.fA(1,4) = H33_struct.fA(1,4) + a20*a23;
+H33_struct.fA(1,5) = H33_struct.fA(1,5) + a20*a24;
+H33_struct.fA(1,6) = H33_struct.fA(1,6) + a20*a25;
+                                          
+H33_struct.fA(2,2) = H33_struct.fA(2,2) + a21*a21;
+H33_struct.fA(2,3) = H33_struct.fA(2,3) + a21*a22;
+H33_struct.fA(2,4) = H33_struct.fA(2,4) + a21*a23;
+H33_struct.fA(2,5) = H33_struct.fA(2,5) + a21*a24;
+H33_struct.fA(2,6) = H33_struct.fA(2,6) + a21*a25;
+                                          
+H33_struct.fA(3,3) = H33_struct.fA(3,3) + a22*a22;
+H33_struct.fA(3,4) = H33_struct.fA(3,4) + a22*a23;
+H33_struct.fA(3,5) = H33_struct.fA(3,5) + a22*a24;
+H33_struct.fA(3,6) = H33_struct.fA(3,6) + a22*a25;
+                                          
+H33_struct.fA(4,4) = H33_struct.fA(4,4) + a23*a23;
+H33_struct.fA(4,5) = H33_struct.fA(4,5) + a23*a24;
+H33_struct.fA(4,6) = H33_struct.fA(4,6) + a23*a25;
+                                          
+H33_struct.fA(5,5) = H33_struct.fA(5,5) + a24*a24;
+H33_struct.fA(5,6) = H33_struct.fA(5,6) + a24*a25;
+                                          
+H33_struct.fA(6,6) = H33_struct.fA(6,6) + a25*a25;
+
+H33_struct.Valid = false;
+end
+
+function H33_struct = H33_Compute(H33_struct)
+if(H33_struct.Valid)
+    return;
+end
+
+for i = 1:9
+  for j = i+1:9
+    H33_struct.fA(j,i) = H33_struct.fA(i,j);
+  end
+end
+
+[~,~,V] = svd(H33_struct.fA);
+
+for i = 1:3
+    for j = 1:3
+        H33_struct.H(i,j) = V(i*3+j, size(V,2));
+    end
+end
+H33_struct.Valid = true;
+end
+
+function [x,y, H33_struct] = H33_Project(Worldx, Worldy, H33_struct)
+if(H33_struct.Valid == false)
+    H33_struct = H33_compute(H33_struct);
+end
+x = H33_struct.H(0,0)*Worldx + H33_struct.H(0,1)*Worldy + H33_struct.H(0,2);
+y = H33_struct.H(1,0)*Worldx + H33_struct.H(1,1)*Worldy + H33_struct.H(1,2);
+
+z = H33_struct.H(2,0)*Worldx + H33_struct.H(2,1)*Worldy + H33_struct.H(2,2);
+
+x = (x/z) + H33_struct.cxy(1);
+y = (y/z) + H33_struct.cxy(2);
+end
+
+function GM_AddObservation(A,x,y,gray)
+
+
+
+end
+
+
+
+
+
+
+
+
+
+
+function OC = OpticalCenter(height,width)
+OC(1) = round(width/2);
+OC(2) = round(height/2);
+end
+
+%These are helper / utility functions
+
+% function GrayImage = cvtColor(InputImage)
+% RedConv   = single(InputImage(:,:,1) *  0.299);
+% GreenConv = single(InputImage(:,:,2) *  0.587);
+% BlueConv  = single(InputImage(:,:,3) *  0.114);
+% 
+% GrayImage = RedConv + GreenConv + BlueConv;
+% GrayImage = GrayImage / 255;
+% end
 
 function output = NormalizeVals(input,Max,Min)
     switch nargin

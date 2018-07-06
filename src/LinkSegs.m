@@ -3,7 +3,7 @@ function linked_segments = LinkSegs(Segments)
 StartPoints = [Segments(:,1),Segments(:,2)]; %Get all the first points of line segments
 EndPoints   = [Segments(:,3),Segments(:,4)]; %Get all the second points of line segments
 
-ValidPts = knnsearch(StartPoints,EndPoints,'K',20); %Find the nearest 20 start points to each end point
+ValidPts = knnsearch(StartPoints,EndPoints,'K',10); %Find the nearest 20 start points to each end point
 linked_segments = struct([]); %Allocating a struct to add segments to
 for i = 1:size(Segments,1)
    tmp = CheckSuccessor(i,ValidPts(i,:)',Segments); %Checks if the segment has any successors

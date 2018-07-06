@@ -33,7 +33,9 @@ if(Depth == 5)
             disp('Failed at CheckSize or CheckAspectRatio');
             return;
         end
-        Quad = [Quad;Path];
+        Qpoints = [Intersections(1,:),Intersections(2,:),Intersections(3,:),...
+            Intersections(4,:)];
+        Quad = [Quad;Qpoints];
     end
     return;
 end

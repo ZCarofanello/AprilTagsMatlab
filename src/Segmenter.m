@@ -5,8 +5,9 @@ Cluster_Num = unique(image_clusters(:,4)); %Gets each unique cluster
 segments = []; %Array for holding segments
 current_num = 1; %holds the offset of the where we're grabbing clusters
 LineNum = 1;
-figure;
+figure('Name','Segments Formed');
 imshow(image_grey);
+title('Segments Formed');
 hold on;
 for i = 1:size(Cluster_Num)
     num_of_pts = size(find(image_clusters(:,4) == Cluster_Num(i)),1);
@@ -23,7 +24,7 @@ for i = 1:size(Cluster_Num)
         segments = [segments;LineTemp]; %Add to the good segments
         LineColor = abs(LineTemp(5))/(2*pi);
         plot([LineTemp(1),LineTemp(3)],[LineTemp(2),LineTemp(4)],'Color',[146/255,LineColor,1]); %plot the segment
-        text(double(LineTemp(1)),double(LineTemp(2)),sprintf('Line# %i',LineNum),'Color','red');
+        %text(double(LineTemp(1)),double(LineTemp(2)),sprintf('Line# %i',LineNum),'Color','red');
         LineNum = LineNum + 1;
     end
     
