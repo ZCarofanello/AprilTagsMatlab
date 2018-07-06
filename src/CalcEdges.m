@@ -1,25 +1,22 @@
 function Edge = CalcEdges(Magnitude, Direction, MagThr)
     %Magnitude(Magnitude <= MagThr) = 0;%Makes sure all edges are above threshold
     MinMag = MagThr;
-    height = size(Magnitude,1);
-    width = size(Magnitude,2);
+    height = 480;
+    width = 640;
     Edge = [];
     FirstEntry = true;
-    for x = 5:height-5
-        for y = 5:width-5
-            if(Magnitude(x,y) > MinMag)
-            if(x == 286 && y == 170)
-                AHH = 0;
-            end
+    for y = 5:height-5
+        for x = 5:width-5
+            if(Magnitude(y*width+x) > MinMag)
             %Cost1
             %if(Magnitude(y,x+1) ~= 0)
-             if(Magnitude(x+1,y) > MinMag)
-                E_Cost = EdgeCost(Direction(x,y),Direction(x+1,y));
+             if(Magnitude(y*width+(x+1)) > MinMag)
+                E_Cost = EdgeCost(Direction(y*width+x),Direction(y*width+(x+1)));
                 if(E_Cost >= 0)
                     Cost = double(E_Cost);
-                    IdA  = y*height+x;
-                    IdB  = y*height+(x+1);
-                    Point = [y,x+1];
+                    IdA  = y*width+x;
+                    IdB  = y*width+(x+1);
+                    Point = [x,y];
                     
                     if(FirstEntry)
                         Edge = [Cost,IdA,IdB,Point];
@@ -31,13 +28,13 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
             end
             %Cost2
             %if(Magnitude(y+1,x) ~= 0)
-            if(Magnitude(x,y+1) > MinMag)
-                E_Cost = EdgeCost(Direction(x,y+1),Direction(x,y+1));
+            if(Magnitude((y+1)*width+(x)) > MinMag)
+                E_Cost = EdgeCost(Direction(y*width+x),Direction((y+1)*width+(x)));
                 if(E_Cost >= 0)
                     Cost = double(E_Cost);
-                    IdA  = y*height+x;
-                    IdB  = (y+1)*height+(x);  
-                    Point = [y+1,x];
+                    IdA  = y*width+x;
+                    IdB  = (y+1)*width+(x);  
+                    Point = [x,y];
                     
                     if(FirstEntry)
                         Edge = [Cost,IdA,IdB,Point];
@@ -49,13 +46,13 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
             end
             %Cost3
             %if(Magnitude(y+1,x+1) ~= 0)
-            if(Magnitude(x+1,y+1) > MinMag)
-                E_Cost = EdgeCost(Direction(x,y),Direction(x+1,y+1));
+            if(Magnitude((y+1)*width+(x+1)) > MinMag)
+                E_Cost = EdgeCost(Direction(y*width+x),Direction((y+1)*width+(x+1)));
                 if(E_Cost >= 0)
                     Cost = double(E_Cost);
-                    IdA  = y*height+x;
-                    IdB  = (y+1)*height+(x+1); 
-                    Point = [y+1,x+1];
+                    IdA  = y*width+x;
+                    IdB  = (y+1)*width+(x+1); 
+                    Point = [x,y];
                     
                     if(FirstEntry)
                         Edge = [Cost,IdA,IdB,Point];
@@ -67,13 +64,13 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
             end
             %Cost4
             %if(Magnitude(y-1,x+1) ~= 0 && y ~= 2)
-            if(Magnitude(x-1,y+1) > MinMag && x ~= 2)
-                E_Cost = EdgeCost(Direction(x,y),Direction(x-1,y+1));
+            if(Magnitude((y+1)*width+(x-1)) > MinMag && x ~= 2)
+                E_Cost = EdgeCost(Direction(y*width+x),Direction((y+1)*width+(x-1)));
                 if(E_Cost >= 0)
                 	Cost = double(E_Cost);
-                    IdA  = y*height+x;
-                    IdB  = (y+1)*height+(x-1);  
-                    Point = [y+1,x-1];
+                    IdA  = y*width+x;
+                    IdB  = (y+1)*width+(x-1);  
+                    Point = [x,y];
                     
                     if(FirstEntry)
                         Edge = [Cost,IdA,IdB,Point];
@@ -83,9 +80,6 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
                     end
                 end
             end
-            end
-            if(length(Edge) >= 21208)
-                AHHH = 0;
             end
         end
     end

@@ -8,10 +8,10 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
     height = size(Magnitude,1);
     
     %Reshape the Magnitude and Directions of the arrays
-    tmin = reshape(Direction,1,[]);
-    tmax = reshape(Direction,1,[]);
-    mmin = reshape(Magnitude,1,[]);
-    mmax = reshape(Magnitude,1,[]);
+    tmin = ArraytoList(Direction);
+    tmax = tmin;
+    mmin = ArraytoList(Magnitude);
+    mmax = mmin;
     
     %Create the unionfind vector which is pre allocated for speed
     SimpleUF = [(1:width*height)', ones(1,width*height)'];
@@ -116,6 +116,18 @@ function Nodes = FindChildren(UF_Array, ParentIdx)
 Nodes = find(UF_Array(:,1) == ParentIdx);
 end
 
+function longArray = ArraytoList(Array)
+Width = size(Array,2);
+Height  = size(Array,1);
+
+longArray = zeros(1,Width*Height);
+for i = 1:Height
+    StartIdx = ((i-1) * Width)+1;
+    EndIdx   = (StartIdx + Width)-1;
+    longArray(1,StartIdx:EndIdx) = Array(i,:);
+end
+end
+
 %Formatting the clusters as a list with points to make it easier later
 function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
     %Need to export these constants
@@ -136,10 +148,10 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
     FirstEntry = true;
     for i = 1:size(Edges,1)-1
         if(logical_arr(Edges(i,2)))
-            EdgeCluster = UF_Array(Edges(i,2),1);
-            EdgeMag = Magnitude(Edges(i,5),Edges(i,4));
-            EdgeX = Edges(i,5);
-            EdgeY = Edges(i,4);
+            EdgeCluster = UF_Array(Edges(i,3),1);
+            EdgeMag = Magnitude(Edges(i,3));
+            EdgeX = Edges(i,4);
+            EdgeY = Edges(i,5);
             if(FirstEntry)
                 ClusterList = [EdgeX,EdgeY,EdgeMag,EdgeCluster];
                 FirstEntry = false;
@@ -148,7 +160,6 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
             end
         end
     end
-    Cluster_Num = unique(ClusterList(:,4)); %Gets each unique cluster
 
     ClusterList = sortrows(ClusterList,4);
 end

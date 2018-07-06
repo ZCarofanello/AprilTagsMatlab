@@ -1,4 +1,4 @@
-function lines = Segmenter(image_clusters,Theta,image_grey)
+function lines = Segmenter(image_clusters,Theta,Mag,image_grey)
 MinDist = 4;
 Cluster_Num = unique(image_clusters(:,4)); %Gets each unique cluster
 
@@ -19,9 +19,9 @@ for i = 1:size(Cluster_Num)
     
     if(MinDist < SegLength)
         LineTemp(6) = SegLength;
-        LineTemp = FindDirection(LineTemp,temp,Theta);
+        LineTemp = FindDirection(LineTemp,temp,Theta,Mag);
         segments = [segments;LineTemp]; %Add to the good segments
-        LineColor = abs(LineTemp(5))/(4*pi);
+        LineColor = abs(LineTemp(5))/(2*pi);
         plot([LineTemp(1),LineTemp(3)],[LineTemp(2),LineTemp(4)],'Color',[146/255,LineColor,1]); %plot the segment
         text(double(LineTemp(1)),double(LineTemp(2)),sprintf('Line# %i',LineNum),'Color','red');
         LineNum = LineNum + 1;
@@ -43,25 +43,25 @@ mX = sum(weightedX); %Sums all the weighted x components
 mY = sum(weightedY); %Sums all the weighted y components
 
 
-mXX = sum(weightedX .* x); %Weighted sum of x squares
-mYY = sum(weightedY .* y); %Weighted sum of y squares
-mXY = sum(weightedY .* x); %Weighted sum of xy product
+mXX = sum(x .* x .* w); %Weighted sum of x squares
+mYY = sum(y .* y .* w); %Weighted sum of y squares
+mXY = sum(y .* x .* w); %Weighted sum of xy product
 n = sum(w);                %Sum of weights
 
 Ex  = mX/n;
 Ey  = mY/n;
-Cxx = (mXX/n) - Ex^2; 
-Cyy = (mYY/n) - Ey^2;
+Cxx = (mXX/n) - ((mX/n)^2); 
+Cyy = (mYY/n) - ((mY/n)^2);
 Cxy = (mXY/n) - (Ex*Ey);
 
 phi = 0.5*atan2(-2*Cxy,(Cyy-Cxx)); %Uses SVD to find direction
 
 dx = -sin(phi); %Change in x
 dy =  cos(phi); %Change in y
-xp = round(Ex); %Rounded X point on line
-yp = round(Ey); %Rounded Y point on line
+xp = Ex; %Rounded X point on line
+yp = Ey; %Rounded Y point on line
 
-[xp,yp,dx,dy] = normalizeP(dx,dy,xp,yp); %Normalize the point
+[dx,dy] = normalizeSlope(dx,dy);
 
 line_coord = GetLineCoord(x,y,dx,dy);    %Get each coordinate on the line from our data set
 
@@ -74,19 +74,18 @@ mincoord = min(line_coord); %Find the beginning of the line
 line = [ min_x, min_y, max_x, max_y,0,0];
 end
 
-function [y,x] = GetPtCoord(xp,yp,dx,dy,coord)
-x = round(xp + coord*dx);
-y = round(yp + coord*dy);
+function [x,y] = GetPtCoord(xp,yp,dx,dy,coord)
+[xp,yp] = normalizeP(dx,dy,xp,yp); %Normalize the point
+x = (xp + coord.*dx);
+y = (yp + coord.*dy);
 end
 
 function coord = GetLineCoord(x,y,dx,dy)
-coord = x*dx + y*dy;
+coord = x.*dx + y.*dy;
 end
 
-function [xn,yn,dx,dy] = normalizeP(dx,dy,x,y)
-[dx,dy] = normalizeSlope(dx,dy);
-dotprod = -dy*x + dx*y;
-
+function [xn,yn] = normalizeP(dx,dy,x,y)
+dotprod = -dy.*x + dx.*y;
 xn = dotprod * -dy;
 yn = dotprod * dx;
 end
@@ -103,7 +102,7 @@ dy = P1y - P2y; %Change in Y
 distance = sqrt(dx^2 + dy^2); %Find the Euclidean distance 
 end
 
-function LineTemp = FindDirection(LineTemp,temp,gd)
+function LineTemp = FindDirection(LineTemp,temp,gd,gm)
 dx = LineTemp(3) - LineTemp(1); %Find the change in x
 dy = LineTemp(4) - LineTemp(2); %Find the change in y
 
@@ -112,13 +111,13 @@ tmpTheta = atan2(dy,dx);        %Temp direction of the line
 noflip = 0;
 flip = 0;
 for i = 1:size(temp)
-    theta = gd(temp(i,1),temp(i,2));%Get all the thetas of the line
-    err = mod2pi(theta - tmpTheta); %Calculate the error of our assumed direction
+    theta = gd(temp(i,2)*640+temp(i,1));%Get all the thetas of the line
+    err = single(mod2pi(theta - tmpTheta)); %Calculate the error of our assumed direction
     
    if(err < 0) %If the error is negative vote for no flip
-       noflip = noflip + temp(i,3);
+       noflip = noflip + gm(temp(i,2)*640+temp(i,1));
    else           %If the error is positive vote for to flip
-       flip = flip + temp(i,3);
+       flip = flip + gm(temp(i,2)*640+temp(i,1));
    end
 end
 
