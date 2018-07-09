@@ -204,7 +204,7 @@ for i = 1:size(quads,1)
             end
             v = GrayImg(iry,irx); %If something seems wrong this is it
             if(i == 3)
-                scatter(irx,iry,5,'r');
+                scatter(irx,iry,20,'filled','r');
             end
             if (iy == -1 || iy == dd || ix == -1 || ix == dd)
                 whiteModel = GM_addObs(x,y,v,whiteModel);
@@ -249,9 +249,9 @@ for i = 1:size(quads,1)
             end
             if(i == 3)
                 if( v > threshold )
-                    scatter(irx,iry,5,'g');
+                    scatter(irx,iry,20,'filled','g');
                 else
-                    scatter(irx,iry,5,'r');
+                    scatter(irx,iry,20,'filled','r');
                 end
             end
         end
