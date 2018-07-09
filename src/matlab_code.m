@@ -162,23 +162,104 @@ quads = DecodeQuad(quads,FoundSegs,RefBw);
 
 tElapsed = toc(tStart)
 
-function quads = DecodeQuad(quads,FoundSegs,RefBw)
+function quads = DecodeQuad(quads,FoundSegs,GrayImg)
 %Constants to export
 blackBorder = 1; dimension = 6;
+%GrayImg = GrayImg';
+[height,width] = size(GrayImg);
 
-OC = OpticalCenter(size(RefBw,1),size(RefBw,2));
+OC = OpticalCenter(width,height);
 for i = 1:size(quads,1)
+    
+    %Initalizing the gray models for this quad
+    blackModel = GM_Init();
+    whiteModel = GM_Init();
+    
     %Initalizing the Homography for this quad
     Quad_H33 = H33_Init(OC);
-    %Quad_H33 = H33_AddCorrespondence(-1,-1,quads(1,i),
+    Quad_H33 = H33_AddCorrespondence(-1,-1,quads(i,1),quads(i,2),Quad_H33);
+    Quad_H33 = H33_AddCorrespondence( 1,-1,quads(i,3),quads(i,4),Quad_H33);
+    Quad_H33 = H33_AddCorrespondence( 1, 1,quads(i,5),quads(i,6),Quad_H33);
+    Quad_H33 = H33_AddCorrespondence(-1, 1,quads(i,7),quads(i,8),Quad_H33);
 
     dd = 2 * blackBorder + dimension;
 
+    %Debug figure
+    if(i == 3)
+        figure('Name','Mapping Points');
+        imshow(GrayImg);
+        title('Local Mapping points');
+        hold on;
+    end
+    
     for iy = -1:dd
         y = (iy + 0.5) / dd;
         for ix = -1:dd
             x = (ix + 0.5) / dd;
+            [px,py,Quad_H33]= Quad_interpolate01(x,y,Quad_H33);
+            irx = floor(px + 0.5);
+            iry = floor(py + 0.5);
+            if(irx < 0 || irx >= width || iry < 0 || iry >= height)
+                continue;
+            end
+            v = GrayImg(iry,irx); %If something seems wrong this is it
+            if(i == 3)
+                scatter(irx,iry,5,'r');
+            end
+            if (iy == -1 || iy == dd || ix == -1 || ix == dd)
+                whiteModel = GM_addObs(x,y,v,whiteModel);
+            elseif (iy == 0 || iy == (dd-1) || ix == 0 || ix == (dd-1))
+                blackModel = GM_addObs(x,y,v,blackModel);
+            end  
         end
+    end
+    hold off;
+
+    
+    %Debug figure
+    if (i == 3)
+        figure('Name','Decoding Tag Contents');
+        imshow(GrayImg);
+        title('Decoding Tag Contents');
+        hold on;
+    end
+    
+    bad = false;
+    tagCode = uint64(0);
+    
+    for iy = dimension-1:-1:0
+        y = (blackBorder + iy + 0.5)/dd;
+        
+        for ix = 0:dimension-1
+            x = (blackBorder + ix +0.5) /dd;
+            [px,py,Quad_H33] = Quad_interpolate01(x,y,Quad_H33);
+            irx = floor(px + 0.5);
+            iry = floor(py + 0.5);
+            if( irx < 0 || irx >= width || iry < 0 || iry >= height)
+                bad = true;
+                continue;
+            end
+            [thrBM,blackModel] = GM_interpolate(x,y,blackModel);
+            [thrWM,whiteModel] = GM_interpolate(x,y,whiteModel);
+            threshold = (thrBM + thrWM) * 0.5;
+            v = GrayImg(iry,irx); %If something is wrong look here
+            tagCode = bitshift(tagCode,1);
+            if( v > threshold)
+                tagCode = bitor(tagCode,uint64(1));
+            end
+            if(i == 3)
+                if( v > threshold )
+                    scatter(irx,iry,5,'g');
+                else
+                    scatter(irx,iry,5,'r');
+                end
+            end
+        end
+    end
+    hold off
+    
+    if(~bad)
+        
     end
 end
 
@@ -198,12 +279,12 @@ H33_struct.Valid = false;
 Imagex = Imagex - H33_struct.cxy(1);
 Imagey = Imagey - H33_struct.cxy(2);
 
-a03 = -worldx;
-a04 = -worldy;
+a03 = -Worldx;
+a04 = -Worldy;
 a05 = -1;
-a06 = worldx*imagey;
-a07 = worldy*imagey;
-a08 = imagey;
+a06 = Worldx*Imagey;
+a07 = Worldy*Imagey;
+a08 = Imagey;
 
 H33_struct.fA(4,4) = H33_struct.fA(4,4) + a03*a03;
 H33_struct.fA(4,5) = H33_struct.fA(4,5) + a03*a04;
@@ -308,53 +389,133 @@ if(H33_struct.Valid)
     return;
 end
 
-for i = 1:9
-  for j = i+1:9
-    H33_struct.fA(j,i) = H33_struct.fA(i,j);
-  end
-end
+%Make Matrix Symetric 
+[n,m]=size(H33_struct.fA);
+B = H33_struct.fA'+H33_struct.fA;
+B(1:n+1:end)=diag(H33_struct.fA);
+H33_struct.fA = B;
 
 [~,~,V] = svd(H33_struct.fA);
-
+tmp = V(:,size(V,2));
 for i = 1:3
-    for j = 1:3
-        H33_struct.H(i,j) = V(i*3+j, size(V,2));
-    end
+    H33_struct.H(i,:) = tmp((i-1)*3+1:i*3);
 end
+
 H33_struct.Valid = true;
 end
 
 function [x,y, H33_struct] = H33_Project(Worldx, Worldy, H33_struct)
 if(H33_struct.Valid == false)
-    H33_struct = H33_compute(H33_struct);
+    H33_struct = H33_Compute(H33_struct);
 end
-x = H33_struct.H(0,0)*Worldx + H33_struct.H(0,1)*Worldy + H33_struct.H(0,2);
-y = H33_struct.H(1,0)*Worldx + H33_struct.H(1,1)*Worldy + H33_struct.H(1,2);
+x = H33_struct.H(1,1)*Worldx + H33_struct.H(1,2)*Worldy + H33_struct.H(1,3);
+y = H33_struct.H(2,1)*Worldx + H33_struct.H(2,2)*Worldy + H33_struct.H(2,3);
 
-z = H33_struct.H(2,0)*Worldx + H33_struct.H(2,1)*Worldy + H33_struct.H(2,2);
+z = H33_struct.H(3,1)*Worldx + H33_struct.H(3,2)*Worldy + H33_struct.H(3,3);
 
 x = (x/z) + H33_struct.cxy(1);
 y = (y/z) + H33_struct.cxy(2);
 end
 
-function GM_AddObservation(A,x,y,gray)
-
-
-
+function [x,y,H33_Struct] = Quad_interpolate01(x,y, H33_Struct)
+[x,y,H33_Struct] = H33_Project(2*x-1, 2*y-1,H33_Struct);
 end
 
+function GrayModel = GM_Init()
+GrayModel = struct('A',zeros(4),'v',zeros(4,1),'b',zeros(4,1),'nobs',0,'dirty',true);
+end
 
+function GrayModel = GM_addObs(x,y,gray,GrayModel)
+xy = x*y;
 
+GrayModel.A(1,1) = GrayModel.A(1,1) + x*x;
+GrayModel.A(1,2) = GrayModel.A(1,2) + x*y;
+GrayModel.A(1,3) = GrayModel.A(1,3) + x*xy;
+GrayModel.A(1,4) = GrayModel.A(1,4) + x;
+GrayModel.A(2,2) = GrayModel.A(2,2) + y*y;
+GrayModel.A(2,3) = GrayModel.A(2,3) + y*xy;
+GrayModel.A(2,4) = GrayModel.A(2,4) + y;
+GrayModel.A(3,3) = GrayModel.A(3,3) + xy*xy;
+GrayModel.A(3,4) = GrayModel.A(3,4) + xy;
+GrayModel.A(4,4) = GrayModel.A(4,4) + 1;
 
+GrayModel.b(1,1) = GrayModel.b(1,1) + x*gray;
+GrayModel.b(2,1) = GrayModel.b(2,1) + y*gray;
+GrayModel.b(3,1) = GrayModel.b(3,1) + xy*gray;
+GrayModel.b(4,1) = GrayModel.b(4,1) + gray;
 
+GrayModel.nobs = GrayModel.nobs + 1;
+GrayModel.dirty = true;
+end
 
+function GrayModel = GM_compute(GrayModel)
 
+GrayModel.dirty = false;
 
+if(GrayModel.nobs >= 6)
+    
+    %Make Matrix Symetric 
+    [n,m]=size(GrayModel.A);
+    B = GrayModel.A'+GrayModel.A;
+    B(1:n+1:end)=diag(GrayModel.A);
+    GrayModel.A = B;
+    
+    GrayModel.v = GrayModel.A^-1 * GrayModel.b;
+    
+else
+    GrayModel.v = zeros(4,1);
+    GrayModel.v(4,1) = GrayModel.b(3,1) / nobs;
+end
+end
 
+function [val, GrayModel] = GM_interpolate(x,y,GrayModel)
+if(GrayModel.dirty)
+    GrayModel = GM_compute(GrayModel);
+end
+
+val = GrayModel.v(1)*x + GrayModel.v(2)*y + GrayModel.v(3)*x*y + GrayModel.v(4);
+end
 
 function OC = OpticalCenter(height,width)
-OC(1) = round(width/2);
-OC(2) = round(height/2);
+OC(2) = round(width/2);
+OC(1) = round(height/2);
+end
+
+function TagDetection = TF_Decode(rCode)
+bestId = -1;
+bestHamming = intmax;
+bestRotation = 0;
+bestcode = uint64(0);
+
+TagFamily = TagFam36h11();
+
+rCodes = zeros(1,4);
+rCodes(1) = rCode;
+rCodes(2) = rotate90(rCodes(1),6);
+rCodes(3) = rotate90(rCodes(2),6);
+rCodes(4) = rotate90(rCodes(3),6);
+
+for id = 1:size(TagFamily.Codes,2)
+    for rot = 1:4
+        
+    end
+end
+end
+
+function RotatedTag = Rotate90(w,d)
+wr = uint64(0);
+oneLongLong = uint64(1);
+
+for r = d-1:-1:0
+   for c = 0:d-1
+       b = r + d*c;
+       wr = bitshift(wr,uint64(1));
+       if(bitand(uint64(w),bitshift(oneLongLong,uint64(b))) ~= 0)
+           wr = bitor(wr,uint64(1));
+       end
+   end
+end
+RotatedTag = wr;
 end
 
 %These are helper / utility functions

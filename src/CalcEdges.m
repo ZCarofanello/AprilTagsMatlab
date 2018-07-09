@@ -16,7 +16,7 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
                     Cost = double(E_Cost);
                     IdA  = y*width+x;
                     IdB  = y*width+(x+1);
-                    Point = [x,y];
+                    Point = [x+1,y];
                     
                     if(FirstEntry)
                         Edge = [Cost,IdA,IdB,Point];
@@ -34,7 +34,7 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
                     Cost = double(E_Cost);
                     IdA  = y*width+x;
                     IdB  = (y+1)*width+(x);  
-                    Point = [x,y];
+                    Point = [x,y+1];
                     
                     if(FirstEntry)
                         Edge = [Cost,IdA,IdB,Point];
@@ -52,7 +52,7 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
                     Cost = double(E_Cost);
                     IdA  = y*width+x;
                     IdB  = (y+1)*width+(x+1); 
-                    Point = [x,y];
+                    Point = [x+1,y+1];
                     
                     if(FirstEntry)
                         Edge = [Cost,IdA,IdB,Point];
@@ -70,7 +70,7 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr)
                 	Cost = double(E_Cost);
                     IdA  = y*width+x;
                     IdB  = (y+1)*width+(x-1);  
-                    Point = [x,y];
+                    Point = [x-1,y+1];
                     
                     if(FirstEntry)
                         Edge = [Cost,IdA,IdB,Point];

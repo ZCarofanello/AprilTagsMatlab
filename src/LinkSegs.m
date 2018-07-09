@@ -35,14 +35,14 @@ POI = [5,50,6,3];
 
 for j = 1:size(ValidPts,2)
     CurrentChild = [ChildLine(j,1),ChildLine(j,2);ChildLine(j,3),ChildLine(j,4)];
-    if(ismember(Pos,POI))
-    	tmp = DiffIntersect([ParentLine;CurrentChild]); %calculates the intersections
-        hold on
-        scatter(tmp(1),tmp(2))
-        hold off
-    else
+%     if(ismember(Pos,POI))
+%     	tmp = DiffIntersect([ParentLine;CurrentChild]); %calculates the intersections
+%         hold on
+%         scatter(tmp(1),tmp(2))
+%         hold off
+%     else
         tmp = DiffIntersect([ParentLine;CurrentChild]); %calculates the intersections
-    end
+%    end
     IntersectionPts = [IntersectionPts;tmp];   %Adds that point to list of intersections
 end
 
