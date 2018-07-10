@@ -21,7 +21,13 @@ image = imread(tag);
 figure('Name','Original Image');
 imshow(image);
 title('Original Image');
-%image = double(image);
+
+%Constants
+TagSize = 0.166;
+Fx = 600;
+Fy = 600;
+Px = size(image,2)/2;
+Py = size(image,1)/2;
 
 %Preprocessing to Grayscale
 if(ndims(image) > 2)
@@ -38,12 +44,12 @@ imshow([image_gray,RefBw]);
 title('Preprocessing: Grayscale');
 
 %Displaying the difference between the two
-BwDiff = PercentError(RefBw,image_gray);
-figure('Name','% Difference in Grayscale');
-imagesc(BwDiff*100);
-colorbar;
-title('% Difference in Grayscale');
-BwTotalErr = sum(sum(BwDiff))*100
+% BwDiff = PercentError(RefBw,image_gray);
+% figure('Name','% Difference in Grayscale');
+% imagesc(BwDiff*100);
+% colorbar;
+% title('% Difference in Grayscale');
+% BwTotalErr = sum(sum(BwDiff))*100;
 
 %Stage 1: Gaussian Blurring 
 image_blurred = imgaussfilt(image_gray, 0.8);
@@ -54,12 +60,12 @@ imshow([image_blurred,RefBlur]);
 title('Stage 1:Gaussian Blurring');
 
 %Displaying the difference between the two
-BlurDiff = PercentError(RefBlur,image_blurred);
-figure('Name','% Difference in Blurring');
-imagesc(BlurDiff*100);
-colorbar;
-title('% Difference in Blurring');
-BlurTotalErr = sum(sum(BlurDiff))*100
+% BlurDiff = PercentError(RefBlur,image_blurred);
+% figure('Name','% Difference in Blurring');
+% imagesc(BlurDiff*100);
+% colorbar;
+% title('% Difference in Blurring');
+% BlurTotalErr = sum(sum(BlurDiff))*100;
 
 
 %Stage 2: Calculating Gradients (Without toolbox)
@@ -93,21 +99,21 @@ figure('Name','Stage 2b: Gradient Direction');
 imagesc([gd,RefTheta]);
 colorbar;
 title('Stage 2b: Gradient Direction');
-tStep2 = toc(tStart)
+tStep2 = toc(tStart);
 
-MagDiff = PercentError(RefMag,gm);
-figure('Name','% Difference in Magnitude');
-imagesc(MagDiff*100);
-colorbar;
-title('% Difference in Magnitude');
-MagTotalErr = sum(sum(MagDiff))*100
-
-ThetaDiff = PercentError(RefTheta,gd);
-figure('Name','% Difference in Theta');
-imagesc(ThetaDiff*100);
-colorbar;
-title('% Difference in Theta');
-BlurTotalErr = sum(sum(ThetaDiff))*100
+% MagDiff = PercentError(RefMag,gm);
+% figure('Name','% Difference in Magnitude');
+% imagesc(MagDiff*100);
+% colorbar;
+% title('% Difference in Magnitude');
+% MagTotalErr = sum(sum(MagDiff))*100;
+% 
+% ThetaDiff = PercentError(RefTheta,gd);
+% figure('Name','% Difference in Theta');
+% imagesc(ThetaDiff*100);
+% colorbar;
+% title('% Difference in Theta');
+% BlurTotalErr = sum(sum(ThetaDiff))*100;
 
 %Stage 3 + 4: Edge Extraction / Clustering
 image_clusters = CalcEdges(ArraytoList(RefMag),ArraytoList(RefTheta),0.004);
@@ -163,7 +169,82 @@ tStep7 = toc(tStart) - tStep6
 Detections = DecodeQuad(quads,RefBw);
 tStep8 = toc(tStart) - tStep7
 
+%Stage 9: Remove Duplicates (Skipping For Now)
+
+%Stage 10?: Decode Pose From Detections
+Pose = struct('dist',0,'x',0,'y',0,'z',0,'pitch',0,'roll',0,'yaw',0);
+Pose = PoseDecoding(Detections,TagSize,Fx,Fy,Px,Py);
+
 tElapsed = toc(tStart)
+
+sprintf('I found %i tag(s)\n',size(Detections));
+for NumDet = 1:size(Detections)
+    sprintf('Id:%i (Hamming: %i)',Detections(NumDet).id,Detections(NumDet).HD);
+    sprintf('distance=%5fm, x=%5f, y=%5f, z=%5f, pitch=%5f, roll=%5f, yaw=%5f',...
+        Pose(NumDet).dist,Pose(NumDet).x,Pose(NumDet).y,Pose(NumDet).z,...
+        Pose(NumDet).pitch,Pose(NumDet).roll,Pose(NumDet).yaw);
+end
+
+
+function Pose = PoseDecoding(Detections,TagSize,Fx,Fy,Px,Py)
+for i = 1:size(Detections)
+    TD_getRelativeTandR(TagSize,Fx,Fy,Px,Py,Detections(i))
+end
+end
+
+function TagPose = TD_getRelativeTandR(TagSize,Fx,Fy,Px,Py,TD_struct)
+H = TD_struct.homography;
+
+R20 =  H(3,1);
+R21 =  H(3,2);
+TZ  =  H(3,3); %Really TZ
+R00 = (H(1,1) - Px*R20) / Fx;
+R01 = (H(1,2) - Px*R21) / Fx;
+TX  = (H(1,3) - Px*TZ)  / Fx;
+R10 = (H(2,1) - Py*R20) / Fy;
+R11 = (H(2,2) - Py*R21) / Fy;
+TY  = (H(2,3) - Py*TZ)  / Fy;
+
+length1 = sqrt(R00^2 + R10^2 + R20^2);
+length2 = sqrt(R01^2 + R11^2 + R21^2);
+s = (sqrt(length1 * length2))^-1;
+if(TZ > 0)
+    s = s * -1;
+end
+
+R20 = R20 * s;
+R21 = R21 * s;
+TZ  = TZ  * s;
+R00 = R00 * s;
+R01 = R01 * s;
+TX  = TX  * s;
+R10 = R10 * s;
+R11 = R11 * s;
+TY  = TY  * s;
+
+
+R02 = R10 * R21 - R20*R11;
+R12 = R20 * R01 - R00*R21;
+R22 = R00 * R11 - R10*R01;
+
+R = [R00,R01,R02;R10,R11,R12;R20,R21,R22];
+
+[U,~,V] = svd(R);
+
+R = U * V';
+
+R00 = R(1,1);
+R01 = R(1,2);
+R02 = R(1,3);
+R10 = R(2,1);
+R11 = R(2,2);
+R12 = R(2,3);
+R20 = R(3,1);
+R21 = R(3,2);
+R22 = R(3,3);
+
+TagPose = [R00,R01,R02,TX;R10,R11,R12,TY;R20,R21,R22,TZ;0,0,0,1]
+end
 
 %These are helper / utility functions
 

@@ -14,9 +14,9 @@ Path(Depth) = ParentSeg.SegNum;
 Quad = Quad;
 
 if(Depth == 5)
-    disp('We are at depth 4!');
+    %disp('We are at depth 4!');
     if(Path(1) == Path(5))
-        disp('The first segment is the same as the last one!');
+        %disp('The first segment is the same as the last one!');
         
         Bad = false;
         
@@ -25,12 +25,12 @@ if(Depth == 5)
         Bad = CheckAngles(Intersections);
         
         if(Bad)
-            disp('Failed at CheckAngles');  
+            %disp('Failed at CheckAngles');  
             return;
         end
         Bad = CheckSize(Intersections);
         if(Bad)
-            disp('Failed at CheckSize or CheckAspectRatio');
+            %disp('Failed at CheckSize or CheckAspectRatio');
             return;
         end
         Qpoints = [Intersections(1,:),Intersections(2,:),Intersections(3,:),...
