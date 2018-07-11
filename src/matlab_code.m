@@ -51,8 +51,9 @@ title('Preprocessing: Grayscale');
 % title('% Difference in Grayscale');
 % BwTotalErr = sum(sum(BwDiff))*100;
 
-%Stage 1: Gaussian Blurring 
-image_blurred = imgaussfilt(image_gray, 0.8);
+%Stage 1: Gaussian Blurring (Without toolbox)
+G = fspecial('gaussian',3,0.8); %Generate Gausian Filter
+image_blurred = conv2(image_gray,G,'same'); %Convolve across image
 
 %Displaying the results of blurring
 figure('Name','Stage 1:Gaussian Blurring');
@@ -60,17 +61,22 @@ imshow([image_blurred,RefBlur]);
 title('Stage 1:Gaussian Blurring');
 
 %Displaying the difference between the two
-% BlurDiff = PercentError(RefBlur,image_blurred);
-% figure('Name','% Difference in Blurring');
-% imagesc(BlurDiff*100);
-% colorbar;
-% title('% Difference in Blurring');
-% BlurTotalErr = sum(sum(BlurDiff))*100;
+BlurDiff = PercentError(RefBlur,image_blurred);
+figure('Name','% Difference in Blurring');
+imagesc(BlurDiff*100);
+colorbar;
+title('% Difference in Blurring');
+BlurTotalErr = sum(sum(BlurDiff))*100;
 
 
 %Stage 2: Calculating Gradients (Without toolbox)
-G = fspecial('gaussian',3,0.5); %Generate Gausian Filter
-[dx, dy] = gradient(G);         %Calc Gradient of Gausian
+P = fspecial('sobel'); %Generate filter
+dx = [ 0, 0,0;...
+       1, 0,-1;...
+       0, 0,0];
+dy = [ 0, 1,0;...
+       0, 0,0;...
+       0,-1,0];
 Ix = conv2(RefBlur,dx,'same');  %Convolve across x direction of image
 Iy = conv2(RefBlur,dy,'same');  %Convolve across y direction ofimage
 
@@ -85,7 +91,7 @@ if(Debug_Gradient == 1)
     title('Stage 2a: Gradient Magnitue (y direction)');
 end
 
-gm = single(sqrt(Ix.^2 + Iy.^2));   %Magnitude
+gm = single(Ix.^2 + Iy.^2);   %Magnitude
 gd = single(atan2(Iy,Ix));          %Direction
 
 
@@ -99,22 +105,22 @@ colorbar;
 title('Stage 2b: Gradient Direction');
 tStep2 = toc(tStart);
 
-% MagDiff = PercentError(RefMag,gm);
-% figure('Name','% Difference in Magnitude');
-% imagesc(MagDiff*100);
-% colorbar;
-% title('% Difference in Magnitude');
-% MagTotalErr = sum(sum(MagDiff))*100;
-% 
-% ThetaDiff = PercentError(RefTheta,gd);
-% figure('Name','% Difference in Theta');
-% imagesc(ThetaDiff*100);
-% colorbar;
-% title('% Difference in Theta');
-% BlurTotalErr = sum(sum(ThetaDiff))*100;
+MagDiff = PercentError(RefMag,gm);
+figure('Name','% Difference in Magnitude');
+imagesc(MagDiff*100);
+colorbar;
+title('% Difference in Magnitude');
+MagTotalErr = sum(sum(MagDiff))*100;
+
+ThetaDiff = PercentError(RefTheta,gd);
+figure('Name','% Difference in Theta');
+imagesc(ThetaDiff*100);
+colorbar;
+title('% Difference in Theta');
+BlurTotalErr = sum(sum(ThetaDiff))*100;
 
 %Stage 3 + 4: Edge Extraction / Clustering
-image_clusters = CalcEdges(ArraytoList(RefMag),ArraytoList(RefTheta)...
+image_clusters = CalcEdges(ArraytoList(gm),ArraytoList(gd)...
     ,0.004, size(image,1), size(image,2));
 tStep3_4 = toc(tStart) - tStep2
 
@@ -136,8 +142,8 @@ current_num = 1; %holds the offset of the where we're grabbing clusters
 
 %Stage 5: Segmentation 
 MinCluster = 4;
-FoundSegs   = Segmenter(image_clusters,ArraytoList(RefTheta)...
-    ,ArraytoList(RefMag),image_gray);
+FoundSegs   = Segmenter(image_clusters,ArraytoList(gd)...
+    ,ArraytoList(gm),image_gray);
 
 tStep5 = toc(tStart) - tStep3_4
 
@@ -169,7 +175,7 @@ tStep7 = toc(tStart) - tStep6
     end
 
 %Stage 8: Decode Quads
-Detections = DecodeQuad(quads,RefBw);
+Detections = DecodeQuad(quads,image_gray);
 tStep8 = toc(tStart) - tStep7
 
 %Stage 9: Remove Duplicates (Skipping For Now)
@@ -191,23 +197,23 @@ for NumDet = 1:size(Detections)
 end
 
 %     %Debug visualization
-%     figure('Name','Detected Tags');
-%     imshow(image_gray);
-%     title('Detected Tags');
-%     hold on;
-%     for i = 1:size(Detections)
-%         Seg1 = [Detections(i).QuadPts(1:2,1),Detections(i).QuadPts(1:2,2)];
-%         Seg2 = [Detections(i).QuadPts(2:3,1),Detections(i).QuadPts(2:3,2)];
-%         Seg3 = [Detections(i).QuadPts(3:4,1),Detections(i).QuadPts(3:4,2)];
-%         Seg4 = [Detections(i).QuadPts([4,1],1),Detections(i).QuadPts([4,1],2)];
-%         
-%         plot(Seg1(1,:),Seg1(2,:),'r-');
-%         plot(Seg2(1,:),Seg2(2,:),'b-');
-%         plot(Seg3(1,:),Seg3(2,:),'g-');
-%         plot(Seg4(1,:),Seg4(2,:),'m-');
-%         scatter(Detections(i).cxy(1),Detections(i).cxy(2),15,'go');
-%     end
-%     hold off
+    figure('Name','Detected Tags');
+    imshow(image_gray);
+    title('Detected Tags');
+    hold on;
+    for i = 1:size(Detections)
+        Seg1 = [Detections(i).QuadPts(1:2,1),Detections(i).QuadPts(1:2,2)];
+        Seg2 = [Detections(i).QuadPts(2:3,1),Detections(i).QuadPts(2:3,2)];
+        Seg3 = [Detections(i).QuadPts(3:4,1),Detections(i).QuadPts(3:4,2)];
+        Seg4 = [Detections(i).QuadPts([4,1],1),Detections(i).QuadPts([4,1],2)];
+        
+        plot(Detections.QuadPts(1:2,1),Detections.QuadPts(1:2,2),'g-');
+        plot(Detections.QuadPts(2:3,1),Detections.QuadPts(2:3,2),'r-');
+        plot(Detections.QuadPts(3:4,1),Detections.QuadPts(3:4,2),'m-');
+        plot(Detections.QuadPts([4,1],1),Detections.QuadPts([4,1],2),'b-');
+        scatter(Detections(i).cxy(1),Detections(i).cxy(2),100,'r','LineWidth',3);
+        text(Detections(i).cxy(1)+10,Detections(i).cxy(2)+5,sprintf('#%i',Detections.id),'color','r');    end
+    hold off
 
 
 %These are helper / utility functions
