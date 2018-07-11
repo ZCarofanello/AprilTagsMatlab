@@ -1,3 +1,4 @@
+%Calculating Cost using matrix math instead of for loops
 % function Edge = CalcEdges(Magnitude, Direction)
 %     VertBuf = zeros(size(Magnitude,1),1);
 %     HorzBuf = zeros(1,size(Magnitude,2));
@@ -40,3 +41,25 @@
 %     image(Cost4Debug);
 % 
 % end
+
+%Different Angle estimation code 
+% if(abs(R20) ~= 1)
+%     theta1 = -asin(R20);
+%     theta2 = pi - theta1;
+%     psi1 = mod2pi(atan2(R21/cos(theta1),R22/cos(theta1)));
+%     psi2 = mod2pi(atan2(R21/cos(theta2),R22/cos(theta2)));
+%     phi1 = mod2pi(atan2(R10/cos(theta1),R00/cos(theta1)));
+%     phi2 = mod2pi(atan2(R10/cos(theta2),R10/cos(theta2)));
+% else
+%     phi1 = 0;
+%     if(R20 == -1)
+%         theta1 = pi/2;
+%         psi1 = mod2pi(atan2(R01,R02));
+%     else
+%         theta1 = -pi/2;
+%         psi1 = mod2pi(atan2(-R01,-R02));
+%     end
+%     theta2 = 0; psi2 = 0; phi2 = 0;
+% end
+% solution1 = [theta1*(180/pi),psi1*(180/pi),phi1*(180/pi)];
+% solution2 = [theta2*(180/pi),psi2*(180/pi),phi2*(180/pi)];

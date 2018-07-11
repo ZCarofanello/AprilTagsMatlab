@@ -50,6 +50,7 @@ for i = 1:size(quads,1)
                 scatter(irx,iry,20,'filled','r');
             end
             
+            %if within bounds add observation to either white or black
             if (iy == -1 || iy == dd || ix == -1 || ix == dd)
                 whiteModel = GM_addObs(x,y,v,whiteModel);
             elseif (iy == 0 || iy == (dd-1) || ix == 0 || ix == (dd-1))
@@ -77,7 +78,8 @@ for i = 1:size(quads,1)
         for ix = 0:dimension-1
             x = (blackBorder + ix +0.5) /dd; %Generate local x value
             
-            [px,py,Quad_H33] = Quad_interpolate01(x,y,Quad_H33); %Find actual x y
+            %Find actual x y
+            [px,py,Quad_H33] = Quad_interpolate01(x,y,Quad_H33);
             
             irx = floor(px + 0.5); %Get actual x value
             iry = floor(py + 0.5); %Get actual y value
@@ -117,6 +119,7 @@ for i = 1:size(quads,1)
         TagDetection.homography = Quad_H33.H;
         TagDetection.hxy = Quad_H33.cxy;
 
+        %Correcting the rotation of the tag
         c = cos(TagDetection.Rotation * (pi/2));
         s = sin(TagDetection.Rotation * (pi/2));
         R = zeros(3);
@@ -128,13 +131,19 @@ for i = 1:size(quads,1)
         tmp = TagDetection.homography * R;
         TagDetection.homography = tmp;
 
+        %Should be the bottom left point of the tag
         [bLx,bLy] = TD_interpolate(-1,-1,TagDetection);
         bestRot = -1;
         bestDist = realmax;
-
+        
+        %Temp variable to simplifiy for loop
         ThisQuad = [quads(i,1),quads(i,2);quads(i,3),quads(i,4);...
                     quads(i,5),quads(i,6);quads(i,7),quads(i,8)];
+                
+        %Add those points to the Output struct
         TagDetection.QuadPts = ThisQuad;
+        
+        %loop through quad points to see which one is the bottom left pt
         for j = 1:4
             dist = Pt2PtDist(bLx,bLy,ThisQuad(j,1),quads(j,2));
             if(dist  < bestDist)
@@ -143,6 +152,7 @@ for i = 1:size(quads,1)
             end
         end
         
+        %Kludged way of making the points the correct rotation
         switch bestRot
             case 1
                 TagDetection.QuadPts(1,:) = ThisQuad(1,:);
@@ -167,8 +177,11 @@ for i = 1:size(quads,1)
         end
 
         if(TagDetection.good)
+            %Get the center of the tag
             [cx,cy] = Quad_interpolate01(0.5,0.5,Quad_H33);
+            %Get the center of the scene
             TagDetection.cxy = [cx,cy];
+            %Needed for step 9
             TagDetection.obsPerimeter = [];
             TagDetections = [TagDetections;TagDetection];
         end
@@ -322,11 +335,12 @@ H33_struct.Valid = true;
 end
 
 function [x,y, H33_struct] = H33_Project(Worldx, Worldy, H33_struct)
+%This translates the local coordinate system to the world coordinate sys
+
 if(H33_struct.Valid == false)
     %Need an updated calcuation of H
     H33_struct = H33_Compute(H33_struct);
 end
-
 x = H33_struct.H(1,1)*Worldx + H33_struct.H(1,2)*Worldy + H33_struct.H(1,3);
 y = H33_struct.H(2,1)*Worldx + H33_struct.H(2,2)*Worldy + H33_struct.H(2,3);
 
@@ -346,7 +360,7 @@ end
 
 function GrayModel = GM_addObs(x,y,gray,GrayModel)
 xy = x*y;
-
+%Homography matrix math for the gray models
 GrayModel.A(1,1) = GrayModel.A(1,1) + x*x;
 GrayModel.A(1,2) = GrayModel.A(1,2) + x*y;
 GrayModel.A(1,3) = GrayModel.A(1,3) + x*xy;
@@ -371,6 +385,7 @@ function GrayModel = GM_compute(GrayModel)
 
 GrayModel.dirty = false;
 
+%Homography matrix math for the gray model
 if(GrayModel.nobs >= 6)
     
     %Make Matrix Symetric 
@@ -450,6 +465,8 @@ TagDetection.code     = bestCode;
 end
 
 function RotatedTag = rotate90(w,d)
+%Math to 'rotate' the tag id 90 to check for the correct ID
+
 wr = uint64(0);
 oneLongLong = uint64(1);
 
@@ -470,16 +487,30 @@ Hd = PopCountReal(bitxor(a,b));
 end
 
 function counts = PopCountReal(w)
+%Calculates the hamming weight of w
+%I needed to spit the unit64 into two unit32s because the largest float
+%integer wasn't large enough
+
+%Needed to split the uint64 into two uint32s
 TopBitmask = hex2dec('FFFFFFFF00000000');
 BotBitmask = hex2dec('00000000FFFFFFFF');
+
+%Snagging top 32 bits
 top = bitshift(bitand(w,TopBitmask),-32);
-topCount = count(dec2bin(top),'1');
+topCount = count(dec2bin(top),'1'); %count all the '1' bits
+
+%Snagging bottom 32 bits
 bot = bitand(w,BotBitmask);
-botCount = count(dec2bin(bot),'1');
+botCount = count(dec2bin(bot),'1'); %count all the '1' bits
+
+%Adding the count of bits
 counts = topCount + botCount;
 end
 
 function [newx,newy] = TD_interpolate(x,y,TD)
+% Interpolation for the Tag Detection struct which treats the homography
+% differently and has assumptions about the tag rotation
+
 z = TD.homography(3,1)*x + TD.homography(3,2)*y + TD.homography(3,3);
 if(z == 0)
     newx = 0;

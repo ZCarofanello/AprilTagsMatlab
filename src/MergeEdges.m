@@ -36,7 +36,8 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
         costa = tmaxa-tmina; %Intermediate cost value
         costb = tmaxb-tminb; %Intermediate cost value
         
-        bshift = mod2pi((tminb+tmaxb)/2, (tmina+tmaxa)/2) - (tminb+tmaxb)/2; %Makes sure that the angles aren't more than +/- PI
+        %Makes sure that the angles aren't more than +/- PI
+        bshift = mod2pi((tminb+tmaxb)/2,(tmina+tmaxa)/2)-(tminb+tmaxb)/2;
         
         tminab = min(tmina, tminb+bshift); %Theta min
         tmaxab = max(tmaxa, tmaxb+bshift); %Theta max
@@ -52,16 +53,17 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
         
         %Magic Values that I need to understand more :)
         Value1 = (costab <= min(costa,costb) + (thetaThr/(sza+szb)));
-        Value2 = (mmaxab-mminab) <= min(mmax(ida)-mmin(ida), mmax(idb)-mmin(idb)) + (magThr/(sza+szb));
+        Value2 = (mmaxab-mminab) <= min(mmax(ida)-mmin(ida),...
+            mmax(idb)-mmin(idb)) + (magThr/(sza+szb));
         
         if(Value1 && Value2)
             [SimpleUF, idab] = connectNodes(SimpleUF, ida, idb);
             
-            tmin(idab) = tminab;
-            tmax(idab) = tmaxab;
+            tmin(idab) = tminab; %Sets the minimum theta
+            tmax(idab) = tmaxab; %Sets the maximum theta
             
-            mmin(idab) = mminab;
-            mmin(idab) = mmaxab;
+            mmin(idab) = mminab; %Sets the minimum mag
+            mmin(idab) = mmaxab; %Sets the maximum mag
         end
     end
     %Export the clusters
@@ -93,27 +95,31 @@ function [NewUFArray,root] = connectNodes(UFArray, aId,bId)
     
     if(UFArray(aRoot,2) > UFArray(bRoot,2)) %Larger tree wins!
         NewUFArray(bRoot,1) = aRoot; %Set the new root
-        %NewUFArray = FlattenTree(bRoot,aRoot,NewUFArray);
-        NewUFArray(aRoot,2) = NewUFArray(aRoot,2) + NewUFArray(bRoot,2); %Add the sizes together
+        
+        %Add the sizes together
+        NewUFArray(aRoot,2) = NewUFArray(aRoot,2) + NewUFArray(bRoot,2);
+        
         root=aRoot; %Return the new root
         return;
      else
         NewUFArray(aRoot,1) = bRoot; %Set the new root
-        %NewUFArray = FlattenTree(aRoot,bRoot,NewUFArray);
-        NewUFArray(bRoot,2) = NewUFArray(aRoot,2) + NewUFArray(bRoot,2); %Add the sizes together
+        
+        %Add the sizes together
+        NewUFArray(bRoot,2) = NewUFArray(aRoot,2) + NewUFArray(bRoot,2);
+        
         root=bRoot; %Return the new root
         return;
     end
 end
 
 function FixedTree = FlattenTree(OldRoot,NewRoot,UF_Array)
-Children_Idx = FindChildren(UF_Array,OldRoot);
-UF_Array(Children_Idx,1) = NewRoot;
+Children_Idx = FindChildren(UF_Array,OldRoot); %Gets all children from root
+UF_Array(Children_Idx,1) = NewRoot;            %Shortcuts all children
 FixedTree = UF_Array;
 end
 
 function Nodes = FindChildren(UF_Array, ParentIdx)
-Nodes = find(UF_Array(:,1) == ParentIdx);
+Nodes = find(UF_Array(:,1) == ParentIdx); %Finds all the children Idx
 end
 
 function longArray = ArraytoList(Array)
@@ -136,6 +142,7 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
     %find clusters that have more than the MinSeg
     Valid_Clusters = UF_Array((UF_Array(:,2) >= MinCluster),1);
     
+    %Extra check to flatten tree (not necessary)
     for k = 1:length(Valid_Clusters)
         root = getRepresentative(UF_Array,Valid_Clusters(k));
         UF_Array = FlattenTree(Valid_Clusters(k),root,UF_Array);
@@ -144,19 +151,21 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
     %Create a logical array for faster indexing / display
     logical_arr = ismember(UF_Array(:,1),Valid_Clusters);
     
-    ClusterList = [];
-    FirstEntry = true;
-    for i = 1:size(Edges,1)-1
-        if(logical_arr(Edges(i,2)))
-            EdgeCluster = UF_Array(Edges(i,3),1);
-            EdgeMag = Magnitude(Edges(i,3));
-            EdgeX = Edges(i,4);
-            EdgeY = Edges(i,5);
+    ClusterList = [];  %Empty matrix for clusters
+    FirstEntry = true; %Bool to make sure we don't miss the first entry
+    
+    for i = 1:size(Edges,1)-1 %loops through all the edges
+        if(logical_arr(Edges(i,2))) %Is the edge a part of valid cluster
+            
+            EdgeCluster = UF_Array(Edges(i,3),1); %Gets cluster #
+            EdgeMag = Magnitude(Edges(i,3));      %Gets magnitude
+            EdgeX = Edges(i,4);                   %Gets X coord
+            EdgeY = Edges(i,5);                   %Gets Y coord
             if(FirstEntry)
                 ClusterList = [EdgeX,EdgeY,EdgeMag,EdgeCluster];
                 FirstEntry = false;
             else
-                ClusterList = [ClusterList;EdgeX,EdgeY,EdgeMag,EdgeCluster];
+                ClusterList=[ClusterList;EdgeX,EdgeY,EdgeMag,EdgeCluster];
             end
         end
     end

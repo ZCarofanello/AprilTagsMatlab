@@ -12,20 +12,28 @@ hold on;
 for i = 1:size(Cluster_Num)
     num_of_pts = size(find(image_clusters(:,4) == Cluster_Num(i)),1);
     
-    temp = image_clusters(current_num:num_of_pts+current_num - 1,:); %Get all the points in that cluster
+    %Get all the points in that cluster
+    temp = image_clusters(current_num:num_of_pts+current_num - 1,:);
     
-    LineTemp = Line2D(temp(:,1),temp(:,2),temp(:,3));                %Find the line created by those points
+    %Find the line created by those points
+    LineTemp = Line2D(temp(:,1),temp(:,2),temp(:,3)); 
     
-    SegLength = Pt2PtDist(LineTemp(1,1),LineTemp(1,2),LineTemp(1,3),LineTemp(1,4));
+    %Finds the length of the created segment
+    SegLength = Pt2PtDist(LineTemp(1,1),LineTemp(1,2)...
+        ,LineTemp(1,3),LineTemp(1,4));
     
     if(MinDist < SegLength)
-        LineTemp(6) = SegLength;
-        LineTemp = FindDirection(LineTemp,temp,Theta,Mag);
+        LineTemp(6) = SegLength; %Record Segment Length
+        LineTemp = FindDirection(LineTemp,temp,Theta,Mag); %find the dir
         segments = [segments;LineTemp]; %Add to the good segments
+        LineNum = LineNum + 1; %increment count
+        
+        %Debug Code
         LineColor = abs(LineTemp(5))/(2*pi);
-        plot([LineTemp(1),LineTemp(3)],[LineTemp(2),LineTemp(4)],'Color',[146/255,LineColor,1]); %plot the segment
-        %text(double(LineTemp(1)),double(LineTemp(2)),sprintf('Line# %i',LineNum),'Color','red');
-        LineNum = LineNum + 1;
+        plot([LineTemp(1),LineTemp(3)],[LineTemp(2),LineTemp(4)]...
+            ,'Color',[146/255,LineColor,1]); %plot the segment
+        %text(double(LineTemp(1)),double(LineTemp(2)),sprintf('Line# %i'...
+        %,LineNum),'Color','red');
     end
     
     current_num = current_num + num_of_pts; %Add to the offset
@@ -62,22 +70,28 @@ dy =  cos(phi); %Change in y
 xp = Ex; %Rounded X point on line
 yp = Ey; %Rounded Y point on line
 
+%Normalize the slope
 [dx,dy] = normalizeSlope(dx,dy);
 
-line_coord = GetLineCoord(x,y,dx,dy);    %Get each coordinate on the line from our data set
+%Get each coordinate on the line from our data set
+line_coord = GetLineCoord(x,y,dx,dy);
 
 maxcoord = max(line_coord); %Find the end of the line
 mincoord = min(line_coord); %Find the beginning of the line
 
-[max_x, max_y] = GetPtCoord(xp,yp,dx,dy,maxcoord); %Find where the beginning is on the line
-[min_x, min_y] = GetPtCoord(xp,yp,dx,dy,mincoord); %Find where the end is on the line
+%Find where the beginning is on the line
+[max_x, max_y] = GetPtCoord(xp,yp,dx,dy,maxcoord);
+
+%Find where the end is on the line
+[min_x, min_y] = GetPtCoord(xp,yp,dx,dy,mincoord);
+
       %|  X1  |  Y1  |  X2  |  Y2  | theta | length |
 line = [ min_x, min_y, max_x, max_y,0,0];
 end
 
 function [x,y] = GetPtCoord(xp,yp,dx,dy,coord)
 [xp,yp] = normalizeP(dx,dy,xp,yp); %Normalize the point
-x = (xp + coord.*dx);
+x = (xp + coord.*dx);              %Gets point on line
 y = (yp + coord.*dy);
 end
 
@@ -107,13 +121,18 @@ function LineTemp = FindDirection(LineTemp,temp,gd,gm)
 dx = LineTemp(3) - LineTemp(1); %Find the change in x
 dy = LineTemp(4) - LineTemp(2); %Find the change in y
 
-tmpTheta = atan2(dy,dx);        %Temp direction of the line
+tmpTheta = atan2(dy,dx); %'Assumed' direction of the line
+
 %Variables for our votes
 noflip = 0;
 flip = 0;
+
 for i = 1:size(temp)
-    theta = gd(temp(i,2)*640+temp(i,1));%Get all the thetas of the line
-    err = single(mod2pi(theta - tmpTheta)); %Calculate the error of our assumed direction
+    %Get all the thetas of the line
+    theta = gd(temp(i,2)*640+temp(i,1));
+    
+    %Calculate the error of our assumed direction
+    err = single(mod2pi(theta - tmpTheta)); 
     
    if(err < 0) %If the error is negative vote for no flip
        noflip = noflip + gm(temp(i,2)*640+temp(i,1));
@@ -128,9 +147,10 @@ else
     LineTemp(5) = tmpTheta;
 end
 
-dot = dx*cos(LineTemp(5)) + dy*sin(LineTemp(5)); %Check if it's the right dir
+%Check if it's the right direction
+dot = dx*cos(LineTemp(5)) + dy*sin(LineTemp(5)); 
 
-if(dot > 0) %If not flip it
+if(dot > 0) %If not flip the line direction
     tmpX = LineTemp(1);
     LineTemp(1) = LineTemp(3);
     LineTemp(3) = tmpX;
