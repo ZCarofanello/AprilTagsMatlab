@@ -17,7 +17,7 @@ real2 = '../pics/real_life_tag2.jpg';
 downscale = 1/255;
 Debug_Gradient = 0;
 tStart = tic;
-image = imread(ref);
+image = imread(tag);
 figure('Name','Original Image');
 imshow(image);
 title('Original Image');
@@ -40,7 +40,7 @@ end
 
 %image_gray = NormalizeVals(image_gray);
 figure('Name','Preprocessing: Grayscale');
-imshow([image_gray,RefBw]);
+imshow([image_gray]);
 title('Preprocessing: Grayscale');
 
 %Displaying the difference between the two
@@ -57,16 +57,16 @@ image_blurred = conv2(image_gray,G,'same'); %Convolve across image
 
 %Displaying the results of blurring
 figure('Name','Stage 1:Gaussian Blurring');
-imshow([image_blurred,RefBlur]);
+imshow([image_blurred]);
 title('Stage 1:Gaussian Blurring');
 
 %Displaying the difference between the two
-BlurDiff = PercentError(RefBlur,image_blurred);
-figure('Name','% Difference in Blurring');
-imagesc(BlurDiff*100);
-colorbar;
-title('% Difference in Blurring');
-BlurTotalErr = sum(sum(BlurDiff))*100;
+% BlurDiff = PercentError(RefBlur,image_blurred);
+% figure('Name','% Difference in Blurring');
+% imagesc(BlurDiff*100);
+% colorbar;
+% title('% Difference in Blurring');
+% BlurTotalErr = sum(sum(BlurDiff))*100;
 
 
 %Stage 2: Calculating Gradients (Without toolbox)
@@ -96,28 +96,28 @@ gd = single(atan2(Iy,Ix));          %Direction
 
 
 figure('Name','Stage 2a: Gradient Magnitue');
-imagesc([gm,RefMag]);
+imagesc([gm]);
 colorbar;
 title('Stage 2a: Gradient Magnitue');
 figure('Name','Stage 2b: Gradient Direction');
-imagesc([gd,RefTheta]);
+imagesc([gd]);
 colorbar;
 title('Stage 2b: Gradient Direction');
 tStep2 = toc(tStart);
 
-MagDiff = PercentError(RefMag,gm);
-figure('Name','% Difference in Magnitude');
-imagesc(MagDiff*100);
-colorbar;
-title('% Difference in Magnitude');
-MagTotalErr = sum(sum(MagDiff))*100;
+% MagDiff = PercentError(RefMag,gm);
+% figure('Name','% Difference in Magnitude');
+% imagesc(MagDiff*100);
+% colorbar;
+% title('% Difference in Magnitude');
+% MagTotalErr = sum(sum(MagDiff))*100;
 
-ThetaDiff = PercentError(RefTheta,gd);
-figure('Name','% Difference in Theta');
-imagesc(ThetaDiff*100);
-colorbar;
-title('% Difference in Theta');
-BlurTotalErr = sum(sum(ThetaDiff))*100;
+% ThetaDiff = PercentError(RefTheta,gd);
+% figure('Name','% Difference in Theta');
+% imagesc(ThetaDiff*100);
+% colorbar;
+% title('% Difference in Theta');
+% BlurTotalErr = sum(sum(ThetaDiff))*100;
 
 %Stage 3 + 4: Edge Extraction / Clustering
 image_clusters = CalcEdges(ArraytoList(gm),ArraytoList(gd)...

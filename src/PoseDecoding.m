@@ -26,13 +26,13 @@ TY  = (H(2,3) - Py*TZ)  / Fy;
 %(Use geometric average of the two length vectors we have)
 length1 = sqrt(R00^2 + R10^2 + R20^2);
 length2 = sqrt(R01^2 + R11^2 + R21^2);
-s = (sqrt(length1 * length2))^-1;
+s = 1/(sqrt(length1 * length2));
 
 
 %get sign of S by requiring the tag to be in front the camera;
 %we assume camera looks in the -Z direction. 
 %ZC - Might be wrong assumption (I have to add 180 to correct rotation)
-if(TZ > 0)
+if(TZ < 0)
     s = s * -1;
 end
 
@@ -87,13 +87,13 @@ s1 = sin(theta1); c1 = cos(theta1);
 theta3 = atan2(s1*R20 - c1*R10, c1*R11 - s1*R21);
 
 solution = [theta1,theta2,theta3] * (180/pi);
-solution(3) = solution(3) - 90; %correct rotation
+solution(3) = solution(3) + 90; %correct rotation
 solution(1) = solution(1) + 180; %correct rotation
 
 %Outputting Calculated Pose
-Pose.roll  = solution(1) /10;
-Pose.pitch = solution(2) /10;
-Pose.yaw   = solution(3) /10;
+Pose.roll  = solution(1);
+Pose.pitch = solution(2);
+Pose.yaw   = solution(3);
 Pose.x     = TX;
 Pose.y     = TY;
 Pose.z     = TZ;
