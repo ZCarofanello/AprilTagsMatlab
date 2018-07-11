@@ -17,7 +17,7 @@ real2 = '../pics/real_life_tag2.jpg';
 downscale = 1/255;
 Debug_Gradient = 0;
 tStart = tic;
-image = imread(tag);
+image = imread(ref);
 figure('Name','Original Image');
 imshow(image);
 title('Original Image');
@@ -77,8 +77,8 @@ dx = [ 0, 0,0;...
 dy = [ 0, 1,0;...
        0, 0,0;...
        0,-1,0];
-Ix = conv2(RefBlur,dx,'same');  %Convolve across x direction of image
-Iy = conv2(RefBlur,dy,'same');  %Convolve across y direction ofimage
+Ix = conv2(image_blurred,dx,'same');  %Convolve across x direction of image
+Iy = conv2(image_blurred,dy,'same');  %Convolve across y direction ofimage
 
 if(Debug_Gradient == 1)
     Ixn = NormalizeVals(Ix);

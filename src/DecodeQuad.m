@@ -145,7 +145,7 @@ for i = 1:size(quads,1)
         
         %loop through quad points to see which one is the bottom left pt
         for j = 1:4
-            dist = Pt2PtDist(bLx,bLy,ThisQuad(j,1),quads(j,2));
+            dist = Pt2PtDist(bLx,bLy,ThisQuad(j,1),ThisQuad(j,2));
             if(dist  < bestDist)
                 bestDist = dist;
                 bestRot = j;
