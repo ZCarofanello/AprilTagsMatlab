@@ -177,22 +177,25 @@ Pose = PoseDecoding(Detections,TagSize,Fx,Fy,Px,Py);
 
 tElapsed = toc(tStart)
 
-sprintf('I found %i tag(s)\n',size(Detections));
+sprintf('I found %i tag(s)\n',size(Detections))
 for NumDet = 1:size(Detections)
-    sprintf('Id:%i (Hamming: %i)',Detections(NumDet).id,Detections(NumDet).HD);
+    sprintf('Id:%i (Hamming: %i)',Detections(NumDet).id,Detections(NumDet).HD)
     sprintf('distance=%5fm, x=%5f, y=%5f, z=%5f, pitch=%5f, roll=%5f, yaw=%5f',...
         Pose(NumDet).dist,Pose(NumDet).x,Pose(NumDet).y,Pose(NumDet).z,...
-        Pose(NumDet).pitch,Pose(NumDet).roll,Pose(NumDet).yaw);
+        Pose(NumDet).pitch,Pose(NumDet).roll,Pose(NumDet).yaw)
 end
 
 
 function Pose = PoseDecoding(Detections,TagSize,Fx,Fy,Px,Py)
+Pose = [];
 for i = 1:size(Detections)
-    TD_getRelativeTandR(TagSize,Fx,Fy,Px,Py,Detections(i))
+    Pose = [Pose;TD_getRelativeTandR(TagSize,Fx,Fy,Px,Py,Detections(i))];
 end
 end
 
 function TagPose = TD_getRelativeTandR(TagSize,Fx,Fy,Px,Py,TD_struct)
+Pose = struct('dist',0,'x',0,'y',0,'z',0,'pitch',0,'roll',0,'yaw',0);
+%Fx = -Fx;
 H = TD_struct.homography;
 
 R20 =  H(3,1);
@@ -233,17 +236,63 @@ R = [R00,R01,R02;R10,R11,R12;R20,R21,R22];
 
 R = U * V';
 
-R00 = R(1,1);
-R01 = R(1,2);
-R02 = R(1,3);
-R10 = R(2,1);
-R11 = R(2,2);
-R12 = R(2,3);
-R20 = R(3,1);
-R21 = R(3,2);
-R22 = R(3,3);
+scale = TagSize/2;
 
-TagPose = [R00,R01,R02,TX;R10,R11,R12,TY;R20,R21,R22,TZ;0,0,0,1]
+% R00 = R(1,1);
+% R01 = R(1,2);
+% R02 = R(1,3);
+% R10 = R(2,1);
+% R11 = R(2,2);
+% R12 = R(2,3);
+% R20 = R(3,1);
+% R21 = R(3,2);
+% R22 = R(3,3);
+TX  = TX * scale;
+TY  = TY * scale;
+TZ  = TZ * scale;
+
+TagPose = [R00,R01,R02,TX;R10,R11,R12,TY;R20,R21,R22,TZ;0,0,0,1];
+
+% if(abs(R20) ~= 1)
+%     theta1 = -asin(R20);
+%     theta2 = pi - theta1;
+%     psi1 = mod2pi(atan2(R21/cos(theta1),R22/cos(theta1)));
+%     psi2 = mod2pi(atan2(R21/cos(theta2),R22/cos(theta2)));
+%     phi1 = mod2pi(atan2(R10/cos(theta1),R00/cos(theta1)));
+%     phi2 = mod2pi(atan2(R10/cos(theta2),R10/cos(theta2)));
+% else
+%     phi1 = 0;
+%     if(R20 == -1)
+%         theta1 = pi/2;
+%         psi1 = mod2pi(atan2(R01,R02));
+%     else
+%         theta1 = -pi/2;
+%         psi1 = mod2pi(atan2(-R01,-R02));
+%     end
+%     theta2 = 0; psi2 = 0; phi2 = 0;
+% end
+% solution1 = [theta1*(180/pi),psi1*(180/pi),phi1*(180/pi)];
+% solution2 = [theta2*(180/pi),psi2*(180/pi),phi2*(180/pi)];
+
+theta1 = atan2(R12,R22);
+c2 = sqrt(R00^2 + R01^2);
+theta2 = atan2(-R02,c2);
+s1 = sin(theta1); c1 = cos(theta1);
+theta3 = atan2(s1*R20 - c1*R10, c1*R11 - s1*R21);
+
+solution = [theta1,theta2,theta3] * (180/pi);
+solution(3) = solution(3) - 90; %correct rotation
+solution(1) = solution(1) + 180; %correct rotation
+
+Pose.roll  = solution(1) /10;
+Pose.pitch = solution(2) /10;
+Pose.yaw   = solution(3) /10;
+Pose.x     = TX;
+Pose.y     = TY;
+Pose.z     = TZ;
+Pose.dist = sqrt(TX^2 + TY^2 + TZ^2);
+
+TagPose = Pose;
 end
 
 %These are helper / utility functions
