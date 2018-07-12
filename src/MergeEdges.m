@@ -20,8 +20,8 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
         ida = Edges(i,2);
         idb = Edges(i,3);
         
-        [ida, SimpleUF] = getRepresentative(SimpleUF,ida); %gets rep
-        [idb, SimpleUF] = getRepresentative(SimpleUF,idb); %gets rep
+        ida = IgetRepresentative(SimpleUF,ida); %gets rep
+        idb = IgetRepresentative(SimpleUF,idb); %gets rep
         
         if(ida == idb) %It's already connected!
             continue;
@@ -57,7 +57,7 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
             mmax(idb)-mmin(idb)) + (magThr/(sza+szb));
         
         if(Value1 && Value2)
-            [SimpleUF, idab] = connectNodes(SimpleUF, ida, idb);
+            [SimpleUF, idab] = IconnectNodes(SimpleUF, ida, idb);
             
             tmin(idab) = tminab; %Sets the minimum theta
             tmax(idab) = tmaxab; %Sets the maximum theta
@@ -70,6 +70,16 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
     Clusters = ExportClusters(SimpleUF,Magnitude, Edges);
 end
 
+
+% Gets the representative of the node
+function root = IgetRepresentative(UFArray,NodeId)
+    if(UFArray(NodeId,1) == NodeId) %If it is it's own rep return
+        root = NodeId;              %No changes
+    else
+        root = UFArray(NodeId,1);
+    end
+end
+
 % Gets the representative of the node
 function [root,UpdatedArray] = getRepresentative(UFArray,NodeId)
     if(UFArray(NodeId,1) == NodeId) %If it is it's own rep return
@@ -79,6 +89,44 @@ function [root,UpdatedArray] = getRepresentative(UFArray,NodeId)
         UFArray(NodeId,1) = root; %Flatten the tree
     end
 UpdatedArray = UFArray;   %Return the updated array
+end
+
+%connects and merges the two trees together
+function [UFArray,root] = IconnectNodes(UFArray, aId,bId)
+
+    aRoot = IgetRepresentative(UFArray,aId); %Get rep of a
+    bRoot = IgetRepresentative(UFArray,bId); %Get rep of b
+
+    if(aRoot==bRoot) %It's already connected!
+        root=aRoot;  %Return the root
+        return;
+    end
+    
+    if(UFArray(aRoot,2) > UFArray(bRoot,2)) %Larger tree wins!
+        %Add the sizes together
+        UFArray(aRoot,2) = UFArray(aRoot,2) + UFArray(bRoot,2);
+        
+        for i = 1:size(UFArray,1)
+           if(UFArray(i,1) == bRoot)
+               UFArray(i,1) = aRoot;
+           end
+        end
+        
+        root=aRoot; %Return the new root
+        return;
+    else
+        %Add the sizes together
+        UFArray(bRoot,2) = UFArray(aRoot,2) + UFArray(bRoot,2);
+        
+        for i = 1:size(UFArray,1)
+           if(UFArray(i,1) == aRoot)
+               UFArray(i,1) = bRoot;
+           end
+        end
+        
+        root=bRoot; %Return the new root
+        return;
+    end
 end
 
 %connects and merges the two trees together

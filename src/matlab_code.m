@@ -13,8 +13,8 @@ tag   = '../pics/test_tag.png';
 ref   = '../pics/tag_middle.png';
 real  = '../pics/real_life_tag.png';
 real2 = '../pics/real_life_tag2.jpg';
+real3 = '../pics/real_life_tag3.jpg';
 
-downscale = 1/255;
 Debug_Gradient = 0;
 tStart = tic;
 image = imread(tag);
@@ -31,46 +31,43 @@ Py = size(image,1)/2;
 
 %Preprocessing to Grayscale
 if(ndims(image) > 2)
-    image_gray = double(rgb2gray(image))/255;
-    %image_gray = NormalizeVals(image_gray);
+    image_gray = single(rgb2gray(image))/255;
 else
-    image_gray = double(image)/255;
-    %image_gray = NormalizeVals(image_gray);
+    image_gray = single(image)/255;
 end
 
-%image_gray = NormalizeVals(image_gray);
 figure('Name','Preprocessing: Grayscale');
 imshow([image_gray]);
 title('Preprocessing: Grayscale');
 
 %Displaying the difference between the two
-% BwDiff = PercentError(RefBw,image_gray);
-% figure('Name','% Difference in Grayscale');
-% imagesc(BwDiff*100);
-% colorbar;
-% title('% Difference in Grayscale');
-% BwTotalErr = sum(sum(BwDiff))*100;
+BwDiff = PercentError(RefBw,image_gray);
+figure('Name','% Difference in Grayscale');
+imagesc(BwDiff);
+colorbar;
+title('% Difference in Grayscale');
+BwTotalErr = sum(sum(BwDiff))*100
 
 %Stage 1: Gaussian Blurring (Without toolbox)
 G = fspecial('gaussian',3,0.8); %Generate Gausian Filter
 image_blurred = conv2(image_gray,G,'same'); %Convolve across image
-
+%image_blurred = image_gray;
 %Displaying the results of blurring
 figure('Name','Stage 1:Gaussian Blurring');
 imshow([image_blurred]);
 title('Stage 1:Gaussian Blurring');
 
 %Displaying the difference between the two
-% BlurDiff = PercentError(RefBlur,image_blurred);
-% figure('Name','% Difference in Blurring');
-% imagesc(BlurDiff*100);
-% colorbar;
-% title('% Difference in Blurring');
-% BlurTotalErr = sum(sum(BlurDiff))*100;
+BlurDiff = PercentError(RefBlur,single(image_blurred));
+figure('Name','% Difference in Blurring');
+imagesc(BlurDiff);
+colorbar;
+title('% Difference in Blurring');
+BlurTotalErr = sum(sum(BlurDiff))*100
 
 
 %Stage 2: Calculating Gradients (Without toolbox)
-P = fspecial('sobel'); %Generate filter
+
 dx = [ 0, 0,0;...
        1, 0,-1;...
        0, 0,0];
@@ -92,7 +89,7 @@ if(Debug_Gradient == 1)
 end
 
 gm = single(Ix.^2 + Iy.^2);   %Magnitude
-gd = single(atan2(Iy,Ix));          %Direction
+gd = single(atan2(Iy,Ix));    %Direction
 
 
 figure('Name','Stage 2a: Gradient Magnitue');
@@ -105,23 +102,23 @@ colorbar;
 title('Stage 2b: Gradient Direction');
 tStep2 = toc(tStart);
 
-% MagDiff = PercentError(RefMag,gm);
-% figure('Name','% Difference in Magnitude');
-% imagesc(MagDiff*100);
-% colorbar;
-% title('% Difference in Magnitude');
-% MagTotalErr = sum(sum(MagDiff))*100;
+MagDiff = PercentError(RefMag,gm);
+figure('Name','% Difference in Magnitude');
+imagesc(MagDiff*100);
+colorbar;
+title('% Difference in Magnitude');
+MagTotalErr = sum(sum(MagDiff))*100
 
-% ThetaDiff = PercentError(RefTheta,gd);
-% figure('Name','% Difference in Theta');
-% imagesc(ThetaDiff*100);
-% colorbar;
-% title('% Difference in Theta');
-% BlurTotalErr = sum(sum(ThetaDiff))*100;
+ThetaDiff = PercentError(RefTheta,gd);
+figure('Name','% Difference in Theta');
+imagesc(ThetaDiff*100);
+colorbar;
+title('% Difference in Theta');
+BlurTotalErr = sum(sum(ThetaDiff))*100
 
 %Stage 3 + 4: Edge Extraction / Clustering
 image_clusters = CalcEdges(ArraytoList(gm),ArraytoList(gd)...
-    ,0.004, size(image,1), size(image,2));
+    ,0.004, size(image,1), size(image,2),image_gray);
 tStep3_4 = toc(tStart) - tStep2
 
 %Debug Code for visualization
@@ -183,12 +180,11 @@ tStep8 = toc(tStart) - tStep7
 %the detection with the lower hamming distance or the larger one
 
 %Stage 10?: Decode Pose From Detections
-Pose = struct('dist',0,'x',0,'y',0,'z',0,'pitch',0,'roll',0,'yaw',0);
 Pose = PoseDecoding(Detections,TagSize,Fx,Fy,Px,Py);
 
 tElapsed = toc(tStart)
 
-sprintf('I found %i tag(s)\n',size(Detections))
+sprintf('I found %i tag(s)\n',size(Detections,1))
 for NumDet = 1:size(Detections)
     sprintf('Id:%i (Hamming: %i)',Detections(NumDet).id,Detections(NumDet).HD)
     sprintf('distance=%5fm, x=%5f, y=%5f, z=%5f, pitch=%5f, roll=%5f, yaw=%5f',...
@@ -198,21 +194,17 @@ end
 
 %     %Debug visualization
     figure('Name','Detected Tags');
-    imshow(image_gray);
+    imshow(image);
     title('Detected Tags');
     hold on;
     for i = 1:size(Detections)
-        Seg1 = [Detections(i).QuadPts(1:2,1),Detections(i).QuadPts(1:2,2)];
-        Seg2 = [Detections(i).QuadPts(2:3,1),Detections(i).QuadPts(2:3,2)];
-        Seg3 = [Detections(i).QuadPts(3:4,1),Detections(i).QuadPts(3:4,2)];
-        Seg4 = [Detections(i).QuadPts([4,1],1),Detections(i).QuadPts([4,1],2)];
-        
-        plot(Detections.QuadPts(1:2,1),Detections.QuadPts(1:2,2),'g-');
-        plot(Detections.QuadPts(2:3,1),Detections.QuadPts(2:3,2),'r-');
-        plot(Detections.QuadPts(3:4,1),Detections.QuadPts(3:4,2),'m-');
-        plot(Detections.QuadPts([4,1],1),Detections.QuadPts([4,1],2),'b-');
+        plot(Detections(i).QuadPts(1:2,1),Detections(i).QuadPts(1:2,2),'g-');
+        plot(Detections(i).QuadPts(2:3,1),Detections(i).QuadPts(2:3,2),'r-');
+        plot(Detections(i).QuadPts(3:4,1),Detections(i).QuadPts(3:4,2),'m-');
+        plot(Detections(i).QuadPts([4,1],1),Detections(i).QuadPts([4,1],2),'b-');
         scatter(Detections(i).cxy(1),Detections(i).cxy(2),100,'r','LineWidth',3);
-        text(Detections(i).cxy(1)+10,Detections(i).cxy(2)+5,sprintf('#%i',Detections.id),'color','r');    end
+        text(Detections(i).cxy(1)+10,Detections(i).cxy(2)+5,sprintf('#%i',Detections(i).id),'color','r');
+    end
     hold off
 
 

@@ -1,4 +1,4 @@
-function Edge = CalcEdges(Magnitude, Direction, MagThr, height, width)
+function Edge = CalcEdges(Magnitude, Direction, MagThr, height, width, gray_image)
     MinMag = MagThr;
     Edge = [];
     
@@ -92,11 +92,9 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr, height, width)
     Edge = sortrows(Edge,1); %Not needed but helps the merger a little
     %Display found Edges
 %     figure;
-%     imshow(Magnitude);
+%     imshow(gray_image);
 %     hold on;
-%     for i = 1:size(Edge,1)
-%         plot(Edge(i,5),Edge(i,4),'r*');
-%     end
+%     scatter(Edge(:,4),Edge(:,5),'r*');
 %     hold off;
     
     Edge = MergeEdges(Edge,Magnitude,Direction); %Merges the detected edges

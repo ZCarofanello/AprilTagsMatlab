@@ -22,7 +22,7 @@ for i = 1:size(quads,1)
     dd = 2 * blackBorder + dimension; %Find DD
 
     %Debug figure
-    if(i == 3)
+    if(0)
         figure('Name','Mapping Points');
         imshow(GrayImg);
         title('Local Mapping points');
@@ -46,7 +46,7 @@ for i = 1:size(quads,1)
             v = GrayImg(iry,irx); %Get grayscale pixel value
             
             %Debug visualization
-            if(i == 3)
+            if(0)
                 scatter(irx,iry,20,'filled','r');
             end
             
@@ -62,7 +62,7 @@ for i = 1:size(quads,1)
 
     
     %Debug figure
-    if (i == 3)
+    if (0)
         figure('Name','Decoding Tag Contents');
         imshow(GrayImg);
         title('Decoding Tag Contents');
@@ -103,7 +103,7 @@ for i = 1:size(quads,1)
             end
             
             %Debugging visualization
-            if(i == 3)
+            if(0)
                 if( v > threshold )
                     scatter(irx,iry,20,'filled','g');
                 else

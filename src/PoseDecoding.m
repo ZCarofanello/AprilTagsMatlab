@@ -80,23 +80,23 @@ TZ  = TZ * scale;
 RT = [R00,R01,R02,TX;R10,R11,R12,TY;R20,R21,R22,TZ;0,0,0,1];
 
 %Extracting Euler angles from rotation matrix
-theta1 = atan2(R12,R22);
+theta1 = mod2pi(atan2(R12,R22));
 c2 = sqrt(R00^2 + R01^2);
-theta2 = atan2(-R02,c2);
+theta2 = mod2pi(atan2(-R02,c2));
 s1 = sin(theta1); c1 = cos(theta1);
-theta3 = atan2(s1*R20 - c1*R10, c1*R11 - s1*R21);
+theta3 = mod2pi(atan2(s1*R20 - c1*R10, c1*R11 - s1*R21));
 
 solution = [theta1,theta2,theta3] * (180/pi);
 solution(3) = solution(3) + 90; %correct rotation
 solution(1) = solution(1) + 180; %correct rotation
 
 %Outputting Calculated Pose
-Pose.roll  = solution(1);
-Pose.pitch = solution(2);
-Pose.yaw   = solution(3);
-Pose.x     = TX;
+Pose.roll  = solution(1) / 10;
+Pose.pitch = solution(2) / 10;
+Pose.yaw   = solution(3) / 10;
+Pose.x     = TZ;
 Pose.y     = TY;
-Pose.z     = TZ;
+Pose.z     = TX;
 Pose.dist = sqrt(TX^2 + TY^2 + TZ^2);
 
 TagPose = Pose;
