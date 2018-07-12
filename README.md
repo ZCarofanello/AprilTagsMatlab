@@ -1,4 +1,4 @@
-# AprilTagsMatlab 
+# AprilTags Matlab 
 This is a fairly faithful port of the AprilTags library into m code. This was developed for the [RIT Ravven Lab](http://www.ritravvenlab.com/).
 
 ## Getting Started
