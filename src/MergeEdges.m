@@ -191,10 +191,10 @@ function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
     Valid_Clusters = UF_Array((UF_Array(:,2) >= MinCluster),1);
     
     %Extra check to flatten tree (not necessary)
-    for k = 1:length(Valid_Clusters)
-        root = getRepresentative(UF_Array,Valid_Clusters(k));
-        UF_Array = FlattenTree(Valid_Clusters(k),root,UF_Array);
-    end
+%     for k = 1:length(Valid_Clusters)
+%         root = getRepresentative(UF_Array,Valid_Clusters(k));
+%         UF_Array = FlattenTree(Valid_Clusters(k),root,UF_Array);
+%     end
 
     %Create a logical array for faster indexing / display
     logical_arr = ismember(UF_Array(:,1),Valid_Clusters);

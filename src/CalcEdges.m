@@ -13,7 +13,7 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr, height, width, gray_imag
                 
                 %If cost is above threshold then add it to list
                 if(E_Cost >= 0)
-                    Cost = double(E_Cost);
+                    Cost = E_Cost;
                     IdA  = y*width+x;
                     IdB  = y*width+(x+1);
                     Point = [x+1,y];
@@ -33,7 +33,7 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr, height, width, gray_imag
                 
                 %If cost is above threshold then add it to list
                 if(E_Cost >= 0)
-                    Cost = double(E_Cost);
+                    Cost = E_Cost;
                     IdA  = y*width+x;
                     IdB  = (y+1)*width+(x);  
                     Point = [x,y+1];
@@ -53,7 +53,7 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr, height, width, gray_imag
                 
                 %If cost is above threshold then add it to list
                 if(E_Cost >= 0)
-                    Cost = double(E_Cost);
+                    Cost = E_Cost;
                     IdA  = y*width+x;
                     IdB  = (y+1)*width+(x+1); 
                     Point = [x+1,y+1];
@@ -73,7 +73,7 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr, height, width, gray_imag
                 
                 %If cost is above threshold then add it to list
                 if(E_Cost >= 0)
-                	Cost = double(E_Cost);
+                	Cost = E_Cost;
                     IdA  = y*width+x;
                     IdB  = (y+1)*width+(x-1);  
                     Point = [x-1,y+1];
@@ -108,7 +108,7 @@ maxEdgeCost = (30 * pi) / 180;       %Makes the max edge cost 30 degrees
 cost = abs(mod2pi(Theta1 - Theta0)); %The difference between the two edges
 
 if(cost > maxEdgeCost)
-    cost = int16(-1); %Essentially makes the edge cost infinite
+    cost = (-1); %Essentially makes the edge cost infinite
     return;
 end
 

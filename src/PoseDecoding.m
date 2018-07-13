@@ -88,12 +88,12 @@ theta3 = mod2pi(atan2(s1*R20 - c1*R10, c1*R11 - s1*R21));
 
 solution = [theta1,theta2,theta3] * (180/pi);
 solution(3) = solution(3) + 90; %correct rotation
-solution(1) = solution(1) + 180; %correct rotation
+solution(1) = solution(1) + 180;%correct rotation
 
 %Outputting Calculated Pose
-Pose.roll  = solution(1) / 10;
-Pose.pitch = solution(2) / 10;
-Pose.yaw   = solution(3) / 10;
+Pose.roll  = solution(1);
+Pose.pitch = solution(2);
+Pose.yaw   = solution(3);
 Pose.x     = TZ;
 Pose.y     = TY;
 Pose.z     = TX;

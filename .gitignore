@@ -4,6 +4,7 @@ april-tag-baseline/
 apriltags/
 BadSources/
 output/
+Project/
 
 #Intermediate files
 *.asv
