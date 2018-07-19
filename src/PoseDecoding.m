@@ -8,7 +8,12 @@ end
 
 function TagPose = TD_getRelativeTandR(TagSize,Fx,Fy,Px,Py,TD_struct)
 Pose = struct('dist',0,'x',0,'y',0,'z',0,'pitch',0,'roll',0,'yaw',0);
-%Fx = -Fx;
+
+CameraMatrix = [Fx, 0, Px;...
+                0 ,Fy, Py;...
+                0 , 0,  1];
+
+Fx = -Fx;
 H = TD_struct.homography;
 
 %Using the homography matrix to construct a rotation and translation matrix
@@ -28,11 +33,9 @@ length1 = sqrt(R00^2 + R10^2 + R20^2);
 length2 = sqrt(R01^2 + R11^2 + R21^2);
 s = 1/(sqrt(length1 * length2));
 
-
 %get sign of S by requiring the tag to be in front the camera;
 %we assume camera looks in the -Z direction. 
-%ZC - Might be wrong assumption (I have to add 180 to correct rotation)
-if(TZ < 0)
+if(TZ > 0)
     s = s * -1;
 end
 
@@ -78,26 +81,39 @@ TZ  = TZ * scale;
 
 %Finished Rotation and translation matrix
 RT = [R00,R01,R02,TX;R10,R11,R12,TY;R20,R21,R22,TZ;0,0,0,1];
+R = [R00,R01,R02;R10,R11,R12;R20,R21,R22];
 
-%Extracting Euler angles from rotation matrix
-theta1 = mod2pi(atan2(R12,R22));
-c2 = sqrt(R00^2 + R01^2);
-theta2 = mod2pi(atan2(-R02,c2));
-s1 = sin(theta1); c1 = cos(theta1);
-theta3 = mod2pi(atan2(s1*R20 - c1*R10, c1*R11 - s1*R21));
+RotationFix = [1,0,0;0,-1,0;0,0,1];
+FrameFix = [0,0,1;-1,0,0;0,0,-1];
+%R = R * FrameFix;
+%R = R * RotationFix;
 
-solution = [theta1,theta2,theta3] * (180/pi);
-solution(3) = solution(3) + 90; %correct rotation
-solution(1) = solution(1) + 180;%correct rotation
+[yaw_t,pitch_t,roll_t] = rotation2Euler(R);
 
 %Outputting Calculated Pose
-Pose.roll  = solution(1);
-Pose.pitch = solution(2);
-Pose.yaw   = solution(3);
-Pose.x     = TZ;
+Pose.yaw   = StandardRad(yaw_t)*(180/pi);
+Pose.pitch = pitch_t*(180/pi);
+Pose.roll  = StandardRad(roll_t)*(180/pi);
+Pose.x     = TX;
 Pose.y     = TY;
-Pose.z     = TX;
+Pose.z     = TZ;
 Pose.dist = sqrt(TX^2 + TY^2 + TZ^2);
 
 TagPose = Pose;
+end
+
+function angle = StandardRad(angle)
+if(angle >= 0)
+    angle = mod(angle+pi, 2*pi) - pi;
+else
+    angle = mod(angle-pi, -2*pi) + pi;
+end
+end
+
+function [yaw,pitch,roll] = rotation2Euler(wRo)
+yaw = StandardRad(atan2(wRo(2,1),wRo(1,1)));
+c = cos(yaw);
+s = sin(yaw);
+pitch = StandardRad(atan2(-wRo(3,1), wRo(1,1)*c + wRo(2,1)*s));
+roll  = StandardRad(atan2(wRo(1,3)*s - wRo(2,3)*c, -wRo(1,2)*s + wRo(2,2)*c));
 end

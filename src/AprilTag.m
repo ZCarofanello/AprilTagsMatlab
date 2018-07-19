@@ -15,8 +15,6 @@ end
 TagSize = 0.166;
 Fx = 600;
 Fy = 600;
-Px = size(image,1)/2;
-Py = size(image,2)/2;
 
 %Preprocessing to Grayscale
 if(ndims(image) > 2)
@@ -24,6 +22,11 @@ if(ndims(image) > 2)
 else
     image_gray = single(image);
 end
+
+width = size(image_gray,2);
+Px = width/2;
+height = size(image_gray,1);
+Py = height/2;
 
 if(debug == 1)
 figure('Name','Preprocessing: Grayscale');
@@ -102,7 +105,7 @@ end
 %Stage 5: Segmentation 
 MinCluster = 4;
 FoundSegs   = Segmenter(image_clusters,ArraytoList(gd)...
-    ,ArraytoList(gm));
+    ,ArraytoList(gm),width,height);
 
 if(debug == 1)
     figure('Name','Segments');
@@ -110,11 +113,12 @@ if(debug == 1)
     title('Segments');
     hold on;
     %Debug Code
-    LineColor = [repmat(146/255,size(FoundSegs,1),1), ...
-        abs(FoundSegs(:,5))/(4*pi),...
-        ones(size(FoundSegs,1),1)];
-    plot([FoundSegs(:,1),FoundSegs(:,3)],[FoundSegs(:,2),FoundSegs(:,4)]...
-      ,'LineWidth',2); %plot the segment
+    for k = 1:length(FoundSegs)
+        LineColor = [146/255,abs(FoundSegs(k,5))/(4*pi),1];
+        plot([FoundSegs(k,1),FoundSegs(k,3)],...
+           [FoundSegs(k,2),FoundSegs(k,4)],...
+           'LineWidth',2,'color',LineColor);%plot the segment
+    end
     hold off;
 end
 %Stage 6: Chain Segments
@@ -145,7 +149,7 @@ if(debug == 1)
 end
 
 %Stage 8: Decode Quads
-Detections = DecodeQuad(quads,image_gray);
+Detections = DecodeQuad(quads,image_gray,0);
 
 %Stage 9: Remove Duplicates (Skipping For Now)
 %This part checks if the quad points are on top of eachother and then picks

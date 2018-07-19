@@ -1,4 +1,4 @@
-function lines = Segmenter(image_clusters,Theta,Mag)
+function lines = Segmenter(image_clusters,Theta,Mag,width,height)
 MinDist = 4;
 Cluster_Num = unique(image_clusters(:,4)); %Gets each unique cluster
 
@@ -20,14 +20,13 @@ for i = 1:size(Cluster_Num)
     
     if(MinDist < SegLength)
         LineTemp(6) = SegLength; %Record Segment Length
-        LineTemp = FindDirection(LineTemp,temp,Theta,Mag); %find the dir
+        LineTemp = FindDirection(LineTemp,temp,Theta,Mag,width); %find the dir
         segments = [segments;LineTemp]; %Add to the good segments
         LineNum = LineNum + 1; %increment count
     end
     
     current_num = current_num + num_of_pts; %Add to the offset
 end
-hold off;
 
 lines = segments; %Export those segments
 
@@ -106,7 +105,7 @@ dy = P1y - P2y; %Change in Y
 distance = sqrt(dx^2 + dy^2); %Find the Euclidean distance 
 end
 
-function LineTemp = FindDirection(LineTemp,temp,gd,gm)
+function LineTemp = FindDirection(LineTemp,temp,gd,gm,width)
 dx = LineTemp(3) - LineTemp(1); %Find the change in x
 dy = LineTemp(4) - LineTemp(2); %Find the change in y
 
@@ -118,15 +117,15 @@ flip = 0;
 
 for i = 1:size(temp)
     %Get all the thetas of the line
-    theta = gd(temp(i,2)*640+temp(i,1));
+    theta = gd(temp(i,2)*width+temp(i,1));
     
     %Calculate the error of our assumed direction
     err = single(mod2pi(theta - tmpTheta)); 
     
    if(err < 0) %If the error is negative vote for no flip
-       noflip = noflip + gm(temp(i,2)*640+temp(i,1));
+       noflip = noflip + gm(temp(i,2)*width+temp(i,1));
    else           %If the error is positive vote for to flip
-       flip = flip + gm(temp(i,2)*640+temp(i,1));
+       flip = flip + gm(temp(i,2)*width+temp(i,1));
    end
 end
 

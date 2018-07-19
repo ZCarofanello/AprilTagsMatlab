@@ -13,12 +13,10 @@ This is a fairly faithful port of the AprilTags library into m code. This was de
 * Statistics and Machine Learning Toolbox
 
 ### Running the Program
-It's really easy! Just run the [matlab_code.m](src/matlab_code.m) script and it will generate intermediate images and calculate the position and pose of each tag detected.
-
+Just run an image using the AprilTag.m function 
 
 ## Copyright and License
-AprilTagsMatlab is Copyright 2018 by Zachary Carofanello.
-All files in this repository are released under the GNU LGPL version 2.1
+All files in this repository are released under the GNU LGPL version 2.1.
 
 ## Acknowledgements
 This is a port of the AprilTag library here's the links to the original code and the C++ versions

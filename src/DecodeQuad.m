@@ -1,12 +1,16 @@
-function TagDetections = DecodeQuad(quads,GrayImg)
+function TagDetections = DecodeQuad(quads,GrayImg,Debug)
 %Constants to export
 blackBorder = 1; dimension = 6;
-%GrayImg = GrayImg';
 [height,width] = size(GrayImg);
 TagDetections = [];
 
 OC = OpticalCenter(width,height);
 for i = 1:size(quads,1)
+    
+    %To keep me sane
+    ThisQuad = [quads(i,1),quads(i,2);quads(i,3),quads(i,4);...
+                quads(i,5),quads(i,6);quads(i,7),quads(i,8)];
+    
     
     %Initalizing the gray models for this quad
     blackModel = GM_Init();
@@ -14,15 +18,15 @@ for i = 1:size(quads,1)
     
     %Initalizing the Homography for this quad
     Quad_H33 = H33_Init(OC);
-    Quad_H33 = H33_AddCorrespondence(-1,-1,quads(i,1),quads(i,2),Quad_H33);
-    Quad_H33 = H33_AddCorrespondence( 1,-1,quads(i,3),quads(i,4),Quad_H33);
-    Quad_H33 = H33_AddCorrespondence( 1, 1,quads(i,5),quads(i,6),Quad_H33);
-    Quad_H33 = H33_AddCorrespondence(-1, 1,quads(i,7),quads(i,8),Quad_H33);
+    Quad_H33 = H33_AddCorrespondence(-1,-1,ThisQuad(1,1),ThisQuad(1,2),Quad_H33);
+    Quad_H33 = H33_AddCorrespondence( 1,-1,ThisQuad(2,1),ThisQuad(2,2),Quad_H33);
+    Quad_H33 = H33_AddCorrespondence( 1, 1,ThisQuad(3,1),ThisQuad(3,2),Quad_H33);
+    Quad_H33 = H33_AddCorrespondence(-1, 1,ThisQuad(4,1),ThisQuad(4,2),Quad_H33);
 
     dd = 2 * blackBorder + dimension; %Find DD
 
     %Debug figure
-    if(0)
+    if(Debug)
         figure('Name','Mapping Points');
         imshow(GrayImg);
         title('Local Mapping points');
@@ -35,8 +39,8 @@ for i = 1:size(quads,1)
             x = (ix + 0.5) / dd; %Generate local x
             [px,py,Quad_H33]= Quad_interpolate01(x,y,Quad_H33); %find actual x and y
             
-            irx = floor(px + 0.5); %Round x to int
-            iry = floor(py + 0.5); %Round y to int
+            irx = floor((px) + 0.5); %Get actual x value
+            iry = floor((py)+ 0.5); %Get actual y value
             
             %check if it's a valid value
             if(irx < 0 || irx >= width || iry < 0 || iry >= height)
@@ -46,7 +50,7 @@ for i = 1:size(quads,1)
             v = GrayImg(iry,irx); %Get grayscale pixel value
             
             %Debug visualization
-            if(0)
+            if(Debug)
                 scatter(irx,iry,20,'filled','r');
             end
             
@@ -58,11 +62,12 @@ for i = 1:size(quads,1)
             end  
         end
     end
+    if (Debug)
     hold off; %debug plot
-
+    end
     
     %Debug figure
-    if (0)
+    if (Debug)
         figure('Name','Decoding Tag Contents');
         imshow(GrayImg);
         title('Decoding Tag Contents');
@@ -81,8 +86,8 @@ for i = 1:size(quads,1)
             %Find actual x y
             [px,py,Quad_H33] = Quad_interpolate01(x,y,Quad_H33);
             
-            irx = floor(px + 0.5); %Get actual x value
-            iry = floor(py + 0.5); %Get actual y value
+            irx = floor((px ) + 0.5); %Get actual x value
+            iry = floor((py)+ 0.5); %Get actual y value
             
             if( irx < 0 || irx >= width || iry < 0 || iry >= height)
                 bad = true;
@@ -103,7 +108,7 @@ for i = 1:size(quads,1)
             end
             
             %Debugging visualization
-            if(0)
+            if(Debug)
                 if( v > threshold )
                     scatter(irx,iry,20,'filled','g');
                 else
@@ -112,33 +117,30 @@ for i = 1:size(quads,1)
             end
         end
     end
+    if(Debug)
     hold off
-    
+    end
     if(~bad)
         TagDetection = TF_Decode(tagCode);
         TagDetection.homography = Quad_H33.H;
-        TagDetection.hxy = Quad_H33.cxy;
+        %TagDetection.hxy = Quad_H33.cxy;
 
         %Correcting the rotation of the tag
-        c = cos(TagDetection.Rotation * (pi/2));
-        s = sin(TagDetection.Rotation * (pi/2));
-        R = zeros(3);
-        R(1,1) = c; R(2,2) = c;
-        R(1,2) = -s;
-        R(2,1) = s;
-        R(3,3) = 1;
-
-        tmp = TagDetection.homography * R;
-        TagDetection.homography = tmp;
+%         c = cos(TagDetection.Rotation * (pi/2));
+%         s = sin(TagDetection.Rotation * (pi/2));
+%         R = zeros(3);
+%         R(1,1) = c; R(2,2) = c;
+%         R(1,2) = -s;
+%         R(2,1) = s;
+%         R(3,3) = 1;
+% 
+%         tmp = TagDetection.homography * R;
+%         TagDetection.homography = tmp;
 
         %Should be the bottom left point of the tag
-        [bLx,bLy] = TD_interpolate(-1,-1,TagDetection);
+        [bLx,bLy] = Quad_interpolate01(-1,-1,Quad_H33);
         bestRot = -1;
         bestDist = realmax;
-        
-        %Temp variable to simplifiy for loop
-        ThisQuad = [quads(i,1),quads(i,2);quads(i,3),quads(i,4);...
-                    quads(i,5),quads(i,6);quads(i,7),quads(i,8)];
                 
         %Add those points to the Output struct
         TagDetection.QuadPts = ThisQuad;
@@ -419,7 +421,6 @@ end
 function TagDetection = TF_Decode(rCode)
 %Constants that need to be exported
 errorRecoveryBits = 1;
-TableShift = 12;
 
 %Init local variables
 bestId = -1;
@@ -457,7 +458,7 @@ TagDetection = struct('id',[],'HD',[],'Rotation',[],'good',[]...
 %Export the decoded tag data
 TagDetection.id       = bestId;
 TagDetection.HD       = bestHamming;
-TagDetection.Rotation = bestRotation;
+TagDetection.Rotation = bestRotation -1;
 TagDetection.good     = (bestHamming <= errorRecoveryBits);
 TagDetection.obsCode  = rCode;
 TagDetection.code     = bestCode;
