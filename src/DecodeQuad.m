@@ -17,7 +17,16 @@ for i = 1:size(quads,1)
     whiteModel = GM_Init();
     
     %Initalizing the Homography for this quad
-    Quad_H33 = H33_Init(OC);
+    cx = 0; cy = 0;
+    for i = 1:4
+        cx = cx + ThisQuad(i,1);
+        cy = cy + ThisQuad(i,2);
+    end
+    cx = cx /4;
+    cy = cy /4;
+    
+    
+    Quad_H33 = H33_Init([cx,cy]);
     Quad_H33 = H33_AddCorrespondence(-1,-1,ThisQuad(1,1),ThisQuad(1,2),Quad_H33);
     Quad_H33 = H33_AddCorrespondence( 1,-1,ThisQuad(2,1),ThisQuad(2,2),Quad_H33);
     Quad_H33 = H33_AddCorrespondence( 1, 1,ThisQuad(3,1),ThisQuad(3,2),Quad_H33);
@@ -86,7 +95,7 @@ for i = 1:size(quads,1)
             %Find actual x y
             [px,py,Quad_H33] = Quad_interpolate01(x,y,Quad_H33);
             
-            irx = floor((px ) + 0.5); %Get actual x value
+            irx = floor((px) + 0.5); %Get actual x value
             iry = floor((py)+ 0.5); %Get actual y value
             
             if( irx < 0 || irx >= width || iry < 0 || iry >= height)
@@ -126,16 +135,14 @@ for i = 1:size(quads,1)
         %TagDetection.hxy = Quad_H33.cxy;
 
         %Correcting the rotation of the tag
-%         c = cos(TagDetection.Rotation * (pi/2));
-%         s = sin(TagDetection.Rotation * (pi/2));
-%         R = zeros(3);
-%         R(1,1) = c; R(2,2) = c;
-%         R(1,2) = -s;
-%         R(2,1) = s;
-%         R(3,3) = 1;
-% 
-%         tmp = TagDetection.homography * R;
-%         TagDetection.homography = tmp;
+        c = cos(TagDetection.Rotation * (pi/2));
+        s = sin(TagDetection.Rotation * (pi/2));
+        R = zeros(3);
+        R(1,1) = c; R(2,2) = c;
+        R(1,2) = -s;
+        R(2,1) = s;
+        R(3,3) = 1;
+        TagDetection.homography = TagDetection.homography * R;
 
         %Should be the bottom left point of the tag
         [bLx,bLy] = Quad_interpolate01(-1,-1,Quad_H33);
@@ -200,7 +207,7 @@ Homography.Valid = false; %Init variable
 end
 
 function H33_struct = H33_AddCorrespondence(Worldx, Worldy, Imagex, Imagey, H33_struct)
-H33_struct.Valid = false;
+H33_struct.Valid = false; 
 
 %Make points in relation to optical center
 Imagex = Imagex - H33_struct.cxy(1);
@@ -215,32 +222,32 @@ a06 = Worldx*Imagey;
 a07 = Worldy*Imagey;
 a08 = Imagey;
 
-H33_struct.fA(4,4) = H33_struct.fA(4,4) + a03*a03;
-H33_struct.fA(4,5) = H33_struct.fA(4,5) + a03*a04;
-H33_struct.fA(4,6) = H33_struct.fA(4,6) + a03*a05;
-H33_struct.fA(4,7) = H33_struct.fA(4,7) + a03*a06;
-H33_struct.fA(4,8) = H33_struct.fA(4,8) + a03*a07;
-H33_struct.fA(4,9) = H33_struct.fA(4,9) + a03*a08;
+H33_struct.fA(4,4) = H33_struct.fA(4,4) + (a03.*a03);
+H33_struct.fA(4,5) = H33_struct.fA(4,5) + (a03.*a04);
+H33_struct.fA(4,6) = H33_struct.fA(4,6) + (a03.*a05);
+H33_struct.fA(4,7) = H33_struct.fA(4,7) + (a03.*a06);
+H33_struct.fA(4,8) = H33_struct.fA(4,8) + (a03.*a07);
+H33_struct.fA(4,9) = H33_struct.fA(4,9) + (a03.*a08);
 
-H33_struct.fA(5,5) = H33_struct.fA(5,5) + a04*a04;
-H33_struct.fA(5,6) = H33_struct.fA(5,6) + a04*a05;
-H33_struct.fA(5,7) = H33_struct.fA(5,7) + a04*a06;
-H33_struct.fA(5,8) = H33_struct.fA(5,8) + a04*a07;
-H33_struct.fA(5,9) = H33_struct.fA(5,9) + a04*a08;
-                                          
-H33_struct.fA(6,6) = H33_struct.fA(6,6) + a05*a05;
-H33_struct.fA(6,7) = H33_struct.fA(6,7) + a05*a06;
-H33_struct.fA(6,8) = H33_struct.fA(6,8) + a05*a07;
-H33_struct.fA(6,9) = H33_struct.fA(6,9) + a05*a08;
-                                          
-H33_struct.fA(7,7) = H33_struct.fA(7,7) + a06*a06;
-H33_struct.fA(7,8) = H33_struct.fA(7,8) + a06*a07;
-H33_struct.fA(7,9) = H33_struct.fA(7,9) + a06*a08;
-                                          
-H33_struct.fA(8,8) = H33_struct.fA(8,8) + a07*a07;
-H33_struct.fA(8,9) = H33_struct.fA(8,9) + a07*a08;
-                                          
-H33_struct.fA(9,9) = H33_struct.fA(9,9) + a08*a08;
+H33_struct.fA(5,5) = H33_struct.fA(5,5) + (a04.*a04);
+H33_struct.fA(5,6) = H33_struct.fA(5,6) + (a04.*a05);
+H33_struct.fA(5,7) = H33_struct.fA(5,7) + (a04.*a06);
+H33_struct.fA(5,8) = H33_struct.fA(5,8) + (a04.*a07);
+H33_struct.fA(5,9) = H33_struct.fA(5,9) + (a04.*a08);
+
+H33_struct.fA(6,6) = H33_struct.fA(6,6) + (a05.*a05);
+H33_struct.fA(6,7) = H33_struct.fA(6,7) + (a05.*a06);
+H33_struct.fA(6,8) = H33_struct.fA(6,8) + (a05.*a07);
+H33_struct.fA(6,9) = H33_struct.fA(6,9) + (a05.*a08);
+
+H33_struct.fA(7,7) = H33_struct.fA(7,7) + (a06.*a06);
+H33_struct.fA(7,8) = H33_struct.fA(7,8) + (a06.*a07);
+H33_struct.fA(7,9) = H33_struct.fA(7,9) + (a06.*a08);
+
+H33_struct.fA(8,8) = H33_struct.fA(8,8) + (a07.*a07);
+H33_struct.fA(8,9) = H33_struct.fA(8,9) + (a07.*a08);
+
+H33_struct.fA(9,9) = H33_struct.fA(9,9) + (a08.*a08);
 
 a10 = Worldx;
 a11 = Worldy;
@@ -249,32 +256,32 @@ a16 = -Worldx*Imagex;
 a17 = -Worldy*Imagex;
 a18 = -Imagex;
 
-H33_struct.fA(1,1) = H33_struct.fA(1,1) + a10*a10;
-H33_struct.fA(1,2) = H33_struct.fA(1,2) + a10*a11;
-H33_struct.fA(1,3) = H33_struct.fA(1,3) + a10*a12;
-H33_struct.fA(1,7) = H33_struct.fA(1,7) + a10*a16;
-H33_struct.fA(1,8) = H33_struct.fA(1,8) + a10*a17;
-H33_struct.fA(1,9) = H33_struct.fA(1,9) + a10*a18;
-                      
-H33_struct.fA(2,2) = H33_struct.fA(2,2) + a11*a11;
-H33_struct.fA(2,3) = H33_struct.fA(2,3) + a11*a12;
-H33_struct.fA(2,7) = H33_struct.fA(2,7) + a11*a16;
-H33_struct.fA(2,8) = H33_struct.fA(2,8) + a11*a17;
-H33_struct.fA(2,9) = H33_struct.fA(2,9) + a11*a18;
-                      
-H33_struct.fA(3,3) = H33_struct.fA(3,3) + a12*a12;
-H33_struct.fA(3,7) = H33_struct.fA(3,7) + a12*a16;
-H33_struct.fA(3,8) = H33_struct.fA(3,8) + a12*a17;
-H33_struct.fA(3,9) = H33_struct.fA(3,9) + a12*a18;
-                      
-H33_struct.fA(7,7) = H33_struct.fA(7,7) + a16*a16;
-H33_struct.fA(7,8) = H33_struct.fA(7,8) + a16*a17;
-H33_struct.fA(7,9) = H33_struct.fA(7,9) + a16*a18;
-                      
-H33_struct.fA(8,8) = H33_struct.fA(8,8) + a17*a17;
-H33_struct.fA(8,9) = H33_struct.fA(8,9) + a17*a18;
-                      
-H33_struct.fA(9,9) = H33_struct.fA(9,9) + a18*a18;
+H33_struct.fA(1,1) = H33_struct.fA(1,1) + (a10.*a10);
+H33_struct.fA(1,2) = H33_struct.fA(1,2) + (a10.*a11);
+H33_struct.fA(1,3) = H33_struct.fA(1,3) + (a10.*a12);
+H33_struct.fA(1,7) = H33_struct.fA(1,7) + (a10.*a16);
+H33_struct.fA(1,8) = H33_struct.fA(1,8) + (a10.*a17);
+H33_struct.fA(1,9) = H33_struct.fA(1,9) + (a10.*a18);
+
+H33_struct.fA(2,2) = H33_struct.fA(2,2) + (a11.*a11);
+H33_struct.fA(2,3) = H33_struct.fA(2,3) + (a11.*a12);
+H33_struct.fA(2,7) = H33_struct.fA(2,7) + (a11.*a16);
+H33_struct.fA(2,8) = H33_struct.fA(2,8) + (a11.*a17);
+H33_struct.fA(2,9) = H33_struct.fA(2,9) + (a11.*a18);
+
+H33_struct.fA(3,3) = H33_struct.fA(3,3) + (a12.*a12);
+H33_struct.fA(3,7) = H33_struct.fA(3,7) + (a12.*a16);
+H33_struct.fA(3,8) = H33_struct.fA(3,8) + (a12.*a17);
+H33_struct.fA(3,9) = H33_struct.fA(3,9) + (a12.*a18);
+
+H33_struct.fA(7,7) = H33_struct.fA(7,7) + (a16.*a16);
+H33_struct.fA(7,8) = H33_struct.fA(7,8) + (a16.*a17);
+H33_struct.fA(7,9) = H33_struct.fA(7,9) + (a16.*a18);
+
+H33_struct.fA(8,8) = H33_struct.fA(8,8) + (a17.*a17);
+H33_struct.fA(8,9) = H33_struct.fA(8,9) + (a17.*a18);
+
+H33_struct.fA(9,9) = H33_struct.fA(9,9) + (a18.*a18);
 
 a20 = -Worldx*Imagey;
 a21 = -Worldy*Imagey;
@@ -283,32 +290,32 @@ a23 = Worldx*Imagex;
 a24 = Worldy*Imagex;
 a25 = Imagex;
 
-H33_struct.fA(1,1) = H33_struct.fA(1,1) + a20*a20;
-H33_struct.fA(1,2) = H33_struct.fA(1,2) + a20*a21;
-H33_struct.fA(1,3) = H33_struct.fA(1,3) + a20*a22;
-H33_struct.fA(1,4) = H33_struct.fA(1,4) + a20*a23;
-H33_struct.fA(1,5) = H33_struct.fA(1,5) + a20*a24;
-H33_struct.fA(1,6) = H33_struct.fA(1,6) + a20*a25;
-                                          
-H33_struct.fA(2,2) = H33_struct.fA(2,2) + a21*a21;
-H33_struct.fA(2,3) = H33_struct.fA(2,3) + a21*a22;
-H33_struct.fA(2,4) = H33_struct.fA(2,4) + a21*a23;
-H33_struct.fA(2,5) = H33_struct.fA(2,5) + a21*a24;
-H33_struct.fA(2,6) = H33_struct.fA(2,6) + a21*a25;
-                                          
-H33_struct.fA(3,3) = H33_struct.fA(3,3) + a22*a22;
-H33_struct.fA(3,4) = H33_struct.fA(3,4) + a22*a23;
-H33_struct.fA(3,5) = H33_struct.fA(3,5) + a22*a24;
-H33_struct.fA(3,6) = H33_struct.fA(3,6) + a22*a25;
-                                          
-H33_struct.fA(4,4) = H33_struct.fA(4,4) + a23*a23;
-H33_struct.fA(4,5) = H33_struct.fA(4,5) + a23*a24;
-H33_struct.fA(4,6) = H33_struct.fA(4,6) + a23*a25;
-                                          
-H33_struct.fA(5,5) = H33_struct.fA(5,5) + a24*a24;
-H33_struct.fA(5,6) = H33_struct.fA(5,6) + a24*a25;
-                                          
-H33_struct.fA(6,6) = H33_struct.fA(6,6) + a25*a25;
+H33_struct.fA(1,1) = H33_struct.fA(1,1) + (a20.*a20);
+H33_struct.fA(1,2) = H33_struct.fA(1,2) + (a20.*a21);
+H33_struct.fA(1,3) = H33_struct.fA(1,3) + (a20.*a22);
+H33_struct.fA(1,4) = H33_struct.fA(1,4) + (a20.*a23);
+H33_struct.fA(1,5) = H33_struct.fA(1,5) + (a20.*a24);
+H33_struct.fA(1,6) = H33_struct.fA(1,6) + (a20.*a25);
+
+H33_struct.fA(2,2) = H33_struct.fA(2,2) + (a21.*a21);
+H33_struct.fA(2,3) = H33_struct.fA(2,3) + (a21.*a22);
+H33_struct.fA(2,4) = H33_struct.fA(2,4) + (a21.*a23);
+H33_struct.fA(2,5) = H33_struct.fA(2,5) + (a21.*a24);
+H33_struct.fA(2,6) = H33_struct.fA(2,6) + (a21.*a25);
+
+H33_struct.fA(3,3) = H33_struct.fA(3,3) + (a22.*a22);
+H33_struct.fA(3,4) = H33_struct.fA(3,4) + (a22.*a23);
+H33_struct.fA(3,5) = H33_struct.fA(3,5) + (a22.*a24);
+H33_struct.fA(3,6) = H33_struct.fA(3,6) + (a22.*a25);
+
+H33_struct.fA(4,4) = H33_struct.fA(4,4) + (a23.*a23);
+H33_struct.fA(4,5) = H33_struct.fA(4,5) + (a23.*a24);
+H33_struct.fA(4,6) = H33_struct.fA(4,6) + (a23.*a25);
+
+H33_struct.fA(5,5) = H33_struct.fA(5,5) + (a24.*a24);
+H33_struct.fA(5,6) = H33_struct.fA(5,6) + (a24.*a25);
+
+H33_struct.fA(6,6) = H33_struct.fA(6,6) + (a25.*a25);
 
 H33_struct.Valid = false;
 end
@@ -324,14 +331,24 @@ B = H33_struct.fA'+H33_struct.fA;
 B(1:n+1:end)=diag(H33_struct.fA);
 H33_struct.fA = B;
 
-[~,~,V] = svd(H33_struct.fA); %Calc svd of fA
+[U,~,~] = svd(H33_struct.fA); %Calc svd of fA
 
-tmp = V(:,size(V,2)); %Get values that we're interested in
+tmp = U(:,size(U,2)); %Get values that we're interested in
 
 %this is to format the values correctly for the next calculations
 for i = 1:3
     H33_struct.H(i,:) = tmp((i-1)*3+1:i*3);
 end
+
+Tx = eye(3);
+Tx(1,3) = 0;
+Tx(2,3) = 0;
+
+Ty = eye(3);
+Ty(1,3) = H33_struct.cxy(1);
+Ty(2,3) = H33_struct.cxy(2);
+
+H33_struct.H = Ty * H33_struct.H * Tx;
 
 H33_struct.Valid = true;
 end
@@ -348,8 +365,8 @@ y = H33_struct.H(2,1)*Worldx + H33_struct.H(2,2)*Worldy + H33_struct.H(2,3);
 
 z = H33_struct.H(3,1)*Worldx + H33_struct.H(3,2)*Worldy + H33_struct.H(3,3);
 
-x = (x/z) + H33_struct.cxy(1);
-y = (y/z) + H33_struct.cxy(2);
+x = (x/z);
+y = (y/z);
 end
 
 function [x,y,H33_Struct] = Quad_interpolate01(x,y, H33_Struct)
@@ -458,7 +475,7 @@ TagDetection = struct('id',[],'HD',[],'Rotation',[],'good',[]...
 %Export the decoded tag data
 TagDetection.id       = bestId;
 TagDetection.HD       = bestHamming;
-TagDetection.Rotation = bestRotation -1;
+TagDetection.Rotation = bestRotation - 1;
 TagDetection.good     = (bestHamming <= errorRecoveryBits);
 TagDetection.obsCode  = rCode;
 TagDetection.code     = bestCode;
