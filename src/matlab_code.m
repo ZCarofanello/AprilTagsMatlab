@@ -17,86 +17,19 @@ YdataC = csvread('../data/yawTest.dat');
 Path = [-30:30]';
 TruePitch = [zeros(61,1),zeros(61,1), Path];
 
-
-figure;
-subplot(1,3,1)
-plot(PdataC(:,5)*(180/pi),'r-');
-hold on;
-title('Pitch C++ Data');
-plot(PdataC(:,6)*(180/pi),'g-');
-plot(PdataC(:,7)*(180/pi),'b-');
-legend('yaw','pitch','roll')
-hold off;
-
-subplot(1,3,2)
-plot(RdataC(:,5)*(180/pi),'r-');
-hold on;
-title('Roll C++ Data');
-plot(RdataC(:,6)*(180/pi),'g-');
-plot(RdataC(:,7)*(180/pi),'b-');
-legend('yaw','pitch','roll')
-hold off;
-
-subplot(1,3,3)
-plot(YdataC(:,5)*(180/pi),'r-');
-hold on;
-title('Yaw C++ Data');
-plot(YdataC(:,6)*(180/pi),'g-');
-plot(YdataC(:,7)*(180/pi),'b-');
-legend('yaw','pitch','roll')
-hold off;
-
-
-figure;
-subplot(1,3,1)
-plot(PercentError(PdataC(:,5)*(180/pi),0)*100,'r-');
-hold on;
-title('% diff:Pitch C++');
-plot(PercentError(PdataC(:,6)*(180/pi),0)*100,'g-');
-plot(PercentError(PdataC(:,7)*(180/pi),Path)*100,'b-');
-legend('yaw','pitch','roll')
-hold off;
-
-subplot(1,3,2)
-plot(PercentError(RdataC(:,5)*(180/pi),0)*100,'r-');
-hold on;
-title('% diff:Roll C++');
-plot(PercentError(RdataC(:,6)*(180/pi),Path)*100,'g-');
-plot(PercentError(RdataC(:,7)*(180/pi),0)*100,'b-');
-legend('yaw','pitch','roll')
-hold off;
-
-subplot(1,3,3)
-plot(PercentError((YdataC(:,5)*(180/pi)),Path)*100,'r-');
-hold on;
-title('% diff:Yaw C++');
-plot(PercentError(YdataC(:,6)*(180/pi),0)*100,'g-');
-plot(PercentError(YdataC(:,7)*(180/pi),0)*100,'b-');
-legend('yaw','pitch','roll')
-hold off;
-
-
 PitchPics = [];
 for i = 0:60
     PitchPics = [PitchPics;sprintf('../pics/P/%05i.png',i)];
 end
 
 PitchObs = [];
+StartTime = tic;
 for j = 1:size(PitchPics,1)
    CurrentPic = imread(PitchPics(j,:));
    [Pose,Detection] = AprilTag(CurrentPic,0);
    PitchObs = [PitchObs, Pose];
 end
-
-figure;
-subplot(1,3,1)
-plot([PitchObs(:).yaw]','r-');
-hold on;
-title('Pitch Matlab Data');
-plot([PitchObs(:).pitch]','g-');
-plot([PitchObs(:).roll]','b-');
-legend('yaw','pitch','roll')
-hold off;
+ElapsedTime = toc(StartTime);
 
 RollPics = [];
 for i = 0:60
@@ -110,15 +43,6 @@ for j = 1:size(RollPics,1)
    RollObs = [RollObs, Pose];
 end
 
-subplot(1,3,2)
-plot([RollObs(:).yaw]','r-');
-hold on;
-title('Roll Matlab Data');
-plot([RollObs(:).pitch]','g-');
-plot([RollObs(:).roll]','b-');
-legend('yaw','pitch','roll')
-hold off;
-
 YawPics = [];
 for i = 0:60
     YawPics = [YawPics;sprintf('../pics/Y/%05i.png',i)];
@@ -131,44 +55,139 @@ for j = 1:size(YawPics,1)
    YawObs = [YawObs, Pose];
 end
 
-subplot(1,3,3)
-plot([YawObs(:).yaw]','r-');
-hold on;
-title('Yaw Matlab Data');
-plot([YawObs(:).pitch]','g-');
-plot([YawObs(:).roll]','b-');
-legend('yaw','pitch','roll')
-hold off;
+figure;
+%Pitch Output
+plotYPR(0,PdataC,PitchObs, 0)
+
+%Roll Output
+plotYPR(1,RdataC,RollObs, 0)
+
+%Yaw Disp
+plotYPR(2,YdataC,YawObs, 0)
 
 figure;
-subplot(1,3,1)
-plot([PitchObs(:).yaw]' - 0,'r-');
-hold on;
-title('diff between actual:Pitch Mat');
-plot([PitchObs(:).pitch]' - 0,'g-');
-plot([PitchObs(:).roll]' - Path,'b-');
-legend('yaw','pitch','roll')
-hold off;
+%Pitch Diff
+plotYPR(0,PdataC,PitchObs, 1)
 
-subplot(1,3,2)
-plot(PercentError([RollObs(:).yaw]',0)*100,'r-');
-hold on;
-title('diff between actual:Roll Mat');
-plot(PercentError([RollObs(:).pitch]',Path)*100,'g-');
-plot(PercentError([RollObs(:).roll]',0)*100,'b-');
-legend('yaw','pitch','roll')
-hold off;
+%Roll Diff
+plotYPR(1,RdataC,RollObs, 1)
 
-subplot(1,3,3)
-plot(PercentError([YawObs(:).yaw]',Path)*100,'r-');
-hold on;
-title('diff between actual:Yaw Mat');
-plot(PercentError([YawObs(:).pitch]', 0)*100,'g-');
-plot(PercentError([YawObs(:).roll]',0)*100,'b-');
-legend('yaw','pitch','roll')
-hold off;
+%Yaw Diff
+plotYPR(2,YdataC,YawObs, 1)
 
-function Error = PercentError(Experimental,Correct)
-difference = Experimental - Correct;
-Error = abs(difference./Correct);
+function plotYPR(RowNum,CData,MatData,diff)
+switch RowNum
+case 0
+    PlotTitle = 'Pitch Test:';
+case 1
+    PlotTitle = 'Roll Test:';
+case 2
+    PlotTitle = 'Yaw Test:';
+end
+    
+if(diff ~= 1)
+    subplot(3,3,1+RowNum);
+    axis([-30 30 -40 40]);
+    if(RowNum == 1)
+        line([-30,30],[-30,30],'Color','green')
+    else
+        line([-30,30],[0,0],'Color','green')
+    end
+    hold on;
+    plot([-30:30],CData(:,6)*(180/pi),'-r');
+    plot([-30:30],[MatData(:).pitch]','-b');
+    
+    title([PlotTitle,'Pitch']);
+    legend('Unity','C++','Matlab','location','southeast');
+    xlabel('True Rotation (Degrees)') % x-axis label
+    ylabel('degrees') % y-axis label
+    hold off;
+    
+    subplot(3,3,4+RowNum);
+    axis([-30 30 -40 40]);
+    if(RowNum == 0)
+        line([-30,30],[-30,30],'Color','green')
+    else
+        line([-30,30],[0,0],'Color','green')
+    end
+    hold on;
+    plot([-30:30],CData(:,7)*(180/pi),'-r');
+    plot([-30:30],[MatData(:).roll]','-b');
+    
+    title([PlotTitle,'Roll']);
+    legend('Unity','C++','Matlab','location','southeast');
+    xlabel('True Rotation (Degrees)') % x-axis label
+    ylabel('degrees') % y-axis label
+    hold off;
+
+    subplot(3,3,7+RowNum);
+    axis([-30 30 -40 40]);
+    if(RowNum == 2)
+        line([-30,30],[-30,30],'Color','green')
+    else
+        line([-30,30],[0,0],'Color','green')
+    end
+    hold on;
+    plot([-30:30],CData(:,5)*(180/pi),'-r');
+    plot([-30:30],[MatData(:).yaw]','-b');
+    title([PlotTitle,'Yaw']);
+    legend('Unity','C++','Matlab','location','southeast');
+    xlabel('True Rotation (Degrees)') % x-axis label
+    ylabel('degrees') % y-axis label
+    hold off;
+else
+    Path = [-30:30];
+    
+    subplot(3,3,1+RowNum);
+    if(RowNum == 1)
+        plot([-30:30],((CData(:,6)*(180/pi)) - Path(:)),'-r');
+        hold on;
+        plot([-30:30],([MatData(:).pitch]' - Path(:)),'-b');
+    else
+        plot([-30:30],(CData(:,6)*(180/pi)),'-r');
+        hold on;
+        plot([-30:30],([MatData(:).pitch]'),'-b');
+    end
+
+    %axis([-30 30 -10 10]);
+    title([PlotTitle,'Pitch Diff']);
+    legend('C++','Matlab');
+    xlabel('True Rotation (Degrees)') % x-axis label
+    ylabel('degrees') % y-axis label
+    hold off;
+    
+    subplot(3,3,4+RowNum);
+    if(RowNum == 0)
+        plot([-30:30],(CData(:,7)*(180/pi) - Path(:)),'-r');
+        hold on;
+        plot([-30:30],([MatData(:).roll]' - Path(:)),'-b');
+    else
+        plot([-30:30],(CData(:,7)*(180/pi)),'-r');
+        hold on;
+        plot([-30:30],([MatData(:).roll]'),'-b');
+    end
+    %axis([-30 30 -10 10]);
+    title([PlotTitle,'Roll Diff']);
+    legend('C++','Matlab');
+    xlabel('True Rotation (Degrees)') % x-axis label
+    ylabel('degrees') % y-axis label
+    hold off;
+
+    subplot(3,3,7+RowNum);
+    if(RowNum == 2)
+        plot([-30:30],(CData(:,5)*(180/pi) - Path(:)),'-r');
+        hold on;
+        plot([-30:30],([MatData(:).yaw]' - Path(:)),'-b');
+    else
+        plot([-30:30],(CData(:,5)*(180/pi)),'-r');
+        hold on;
+        plot([-30:30],([MatData(:).yaw]'),'-b');
+    end
+    %axis([-30 30 -10 10]);
+    title([PlotTitle,'Yaw Diff']);
+    legend('C++','Matlab');
+    xlabel('True Rotation (Degrees)') % x-axis label
+    ylabel('degrees') % y-axis label
+    hold off;
+end
 end

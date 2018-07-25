@@ -68,6 +68,7 @@ end
 end
 
 function QuadPts = FindIntersections(Path, SegmentList)
+%Point = zeros(1,2);
 for i = 1:4
     %Make line A
     LineA = [SegmentList(Path(i),1), SegmentList(Path(i),2)];

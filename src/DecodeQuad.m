@@ -1,6 +1,9 @@
 function TagDetections = DecodeQuad(quads,GrayImg,Debug)
 %Constants to export
 blackBorder = 1; dimension = 6;
+tag36h11 = struct('black_border',blackBorder,'d',dimension);
+
+
 [height,width] = size(GrayImg);
 TagDetections = [];
 
@@ -8,29 +11,23 @@ OC = OpticalCenter(width,height);
 for i = 1:size(quads,1)
     
     %To keep me sane
-    ThisQuad = [quads(i,1),quads(i,2);quads(i,3),quads(i,4);...
+    ThisQuad = struct('H33',[],'p',[]);
+    
+    ThisQuad.p = [quads(i,1),quads(i,2);quads(i,3),quads(i,4);...
                 quads(i,5),quads(i,6);quads(i,7),quads(i,8)];
     
     
     %Initalizing the gray models for this quad
     blackModel = GM_Init();
-    whiteModel = GM_Init();
+    whiteModel = GM_Init();    
     
-    %Initalizing the Homography for this quad
-    cx = 0; cy = 0;
-    for i = 1:4
-        cx = cx + ThisQuad(i,1);
-        cy = cy + ThisQuad(i,2);
-    end
-    cx = cx /4;
-    cy = cy /4;
+    ThisQuad.H33 = H33_Init(ThisQuad);
+    ThisQuad.H33 = H33_Compute(ThisQuad.H33);
     
+    refineSteps = [1, .4, .16, .064];
     
-    Quad_H33 = H33_Init([cx,cy]);
-    Quad_H33 = H33_AddCorrespondence(-1,-1,ThisQuad(1,1),ThisQuad(1,2),Quad_H33);
-    Quad_H33 = H33_AddCorrespondence( 1,-1,ThisQuad(2,1),ThisQuad(2,2),Quad_H33);
-    Quad_H33 = H33_AddCorrespondence( 1, 1,ThisQuad(3,1),ThisQuad(3,2),Quad_H33);
-    Quad_H33 = H33_AddCorrespondence(-1, 1,ThisQuad(4,1),ThisQuad(4,2),Quad_H33);
+    %May not help refine the pose
+    %ThisQuad = optimize_quad_generic(tag36h11,GrayImg,ThisQuad,refineSteps);
 
     dd = 2 * blackBorder + dimension; %Find DD
 
@@ -46,13 +43,13 @@ for i = 1:size(quads,1)
         y = (iy + 0.5) / dd; %Generate local y
         for ix = -1:dd
             x = (ix + 0.5) / dd; %Generate local x
-            [px,py,Quad_H33]= Quad_interpolate01(x,y,Quad_H33); %find actual x and y
+            [px,py,ThisQuad.H33]= Quad_interpolate01(x,y,ThisQuad.H33); %find actual x and y
             
             irx = floor((px) + 0.5); %Get actual x value
             iry = floor((py)+ 0.5); %Get actual y value
             
             %check if it's a valid value
-            if(irx < 0 || irx >= width || iry < 0 || iry >= height)
+            if(irx <= 0 || irx >= width || iry <= 0 || iry >= height)
                 continue;
             end
             
@@ -93,7 +90,7 @@ for i = 1:size(quads,1)
             x = (blackBorder + ix +0.5) /dd; %Generate local x value
             
             %Find actual x y
-            [px,py,Quad_H33] = Quad_interpolate01(x,y,Quad_H33);
+            [px,py,ThisQuad.H33] = Quad_interpolate01(x,y,ThisQuad.H33);
             
             irx = floor((px) + 0.5); %Get actual x value
             iry = floor((py)+ 0.5); %Get actual y value
@@ -107,7 +104,6 @@ for i = 1:size(quads,1)
             [thrWM,whiteModel] = GM_interpolate(x,y,whiteModel);
             
             threshold = (thrBM + thrWM) * 0.5; %Create threshold for point
-            
             
             v = GrayImg(iry,irx); %Get grayscale value
             
@@ -131,7 +127,7 @@ for i = 1:size(quads,1)
     end
     if(~bad)
         TagDetection = TF_Decode(tagCode);
-        TagDetection.homography = Quad_H33.H;
+        TagDetection.homography = ThisQuad.H33;
         %TagDetection.hxy = Quad_H33.cxy;
 
         %Correcting the rotation of the tag
@@ -142,19 +138,19 @@ for i = 1:size(quads,1)
         R(1,2) = -s;
         R(2,1) = s;
         R(3,3) = 1;
-        TagDetection.homography = TagDetection.homography * R;
+        %TagDetection.homography.H = TagDetection.homography.H * R;
 
         %Should be the bottom left point of the tag
-        [bLx,bLy] = Quad_interpolate01(-1,-1,Quad_H33);
+        [bLx,bLy] = Quad_interpolate01(-1,-1,TagDetection.homography);
         bestRot = -1;
         bestDist = realmax;
                 
         %Add those points to the Output struct
-        TagDetection.QuadPts = ThisQuad;
+        TagDetection.QuadPts = ThisQuad.p;
         
         %loop through quad points to see which one is the bottom left pt
         for j = 1:4
-            dist = Pt2PtDist(bLx,bLy,ThisQuad(j,1),ThisQuad(j,2));
+            dist = Pt2PtDist(bLx,bLy,ThisQuad.p(j,1),ThisQuad.p(j,2));
             if(dist  < bestDist)
                 bestDist = dist;
                 bestRot = j;
@@ -164,30 +160,30 @@ for i = 1:size(quads,1)
         %Kludged way of making the points the correct rotation
         switch bestRot
             case 1
-                TagDetection.QuadPts(1,:) = ThisQuad(1,:);
-                TagDetection.QuadPts(2,:) = ThisQuad(2,:);
-                TagDetection.QuadPts(3,:) = ThisQuad(3,:);
-                TagDetection.QuadPts(4,:) = ThisQuad(4,:);
+                TagDetection.QuadPts(1,:) = ThisQuad.p(1,:);
+                TagDetection.QuadPts(2,:) = ThisQuad.p(2,:);
+                TagDetection.QuadPts(3,:) = ThisQuad.p(3,:);
+                TagDetection.QuadPts(4,:) = ThisQuad.p(4,:);
             case 2
-                TagDetection.QuadPts(1,:) = ThisQuad(2,:);
-                TagDetection.QuadPts(2,:) = ThisQuad(3,:);
-                TagDetection.QuadPts(3,:) = ThisQuad(4,:);
-                TagDetection.QuadPts(4,:) = ThisQuad(1,:);
+                TagDetection.QuadPts(1,:) = ThisQuad.p(2,:);
+                TagDetection.QuadPts(2,:) = ThisQuad.p(3,:);
+                TagDetection.QuadPts(3,:) = ThisQuad.p(4,:);
+                TagDetection.QuadPts(4,:) = ThisQuad.p(1,:);
             case 3
-                TagDetection.QuadPts(1,:) = ThisQuad(3,:);
-                TagDetection.QuadPts(2,:) = ThisQuad(4,:);
-                TagDetection.QuadPts(3,:) = ThisQuad(1,:);
-                TagDetection.QuadPts(4,:) = ThisQuad(2,:);
+                TagDetection.QuadPts(1,:) = ThisQuad.p(3,:);
+                TagDetection.QuadPts(2,:) = ThisQuad.p(4,:);
+                TagDetection.QuadPts(3,:) = ThisQuad.p(1,:);
+                TagDetection.QuadPts(4,:) = ThisQuad.p(2,:);
             case 4
-                TagDetection.QuadPts(1,:) = ThisQuad(4,:);
-                TagDetection.QuadPts(2,:) = ThisQuad(1,:);
-                TagDetection.QuadPts(3,:) = ThisQuad(2,:);
-                TagDetection.QuadPts(4,:) = ThisQuad(3,:);
+                TagDetection.QuadPts(1,:) = ThisQuad.p(4,:);
+                TagDetection.QuadPts(2,:) = ThisQuad.p(1,:);
+                TagDetection.QuadPts(3,:) = ThisQuad.p(2,:);
+                TagDetection.QuadPts(4,:) = ThisQuad.p(3,:);
         end
 
         if(TagDetection.good)
             %Get the center of the tag
-            [cx,cy] = Quad_interpolate01(0.5,0.5,Quad_H33);
+            [cx,cy] = Quad_interpolate01(0.5,0.5,TagDetection.homography);
             %Get the center of the scene
             TagDetection.cxy = [cx,cy];
             %Needed for step 9
@@ -199,11 +195,69 @@ end
 
 end
 
-function Homography = H33_Init(OpticalCenter)
-Homography = struct('cxy',OpticalCenter,'fA',[],'H',[],'Valid',[]);
+function Homography = H33_Init(ThisQuad)
+Homography = struct('cxy',[],'fA',[],'H',[],'Valid',[]);
+
+%Initalizing the Homography for this quad
+cx = 0; cy = 0;
+for k = 1:4
+    cx = cx + ThisQuad.p(k,1);
+    cy = cy + ThisQuad.p(k,2);
+end
+cx = cx /4;
+cy = cy /4;
+
+Homography.cxy = [cx,cy];
 Homography.fA = zeros(9); %Fill matrix with zeros
 Homography.H  = zeros(3); %Fill matrix with zeros
 Homography.Valid = false; %Init variable
+
+Seg(1) = struct('pt1',ThisQuad.p(1,:),'pt2',ThisQuad.p(2,:),'pts', []);
+Seg(2) = struct('pt1',ThisQuad.p(2,:),'pt2',ThisQuad.p(3,:),'pts', []);
+Seg(3) = struct('pt1',ThisQuad.p(3,:),'pt2',ThisQuad.p(4,:),'pts', []);
+Seg(4) = struct('pt1',ThisQuad.p(4,:),'pt2',ThisQuad.p(1,:),'pts', []);
+
+numOfPts = 128;
+Seg(1) = ExtrapolatePts(Seg(1),numOfPts);
+Seg(2) = ExtrapolatePts(Seg(2),numOfPts);
+Seg(3) = ExtrapolatePts(Seg(3),numOfPts);
+Seg(4) = ExtrapolatePts(Seg(4),numOfPts);
+
+PtsInc = 2/numOfPts;
+for p = 2:numOfPts-1
+    CurrentInc = p*(PtsInc);
+    %Segment 1
+    Homography = H33_AddCorrespondence(-1+CurrentInc, -1,Seg(1).pts(p,1),Seg(1).pts(p,2),Homography);
+    %Segment 2
+    Homography = H33_AddCorrespondence(1, -1+CurrentInc,Seg(2).pts(p,1),Seg(2).pts(p,2),Homography);
+    %Segment 3
+    Homography = H33_AddCorrespondence(1-CurrentInc,1,Seg(3).pts(p,1),Seg(3).pts(p,2),Homography);
+    %Segment 4
+    Homography = H33_AddCorrespondence(-1,1-CurrentInc,Seg(4).pts(p,1),Seg(4).pts(p,2),Homography);
+end
+
+end
+
+function LineSeg = ExtrapolatePts(LineSeg, NumOfPts)
+Pts = [];
+deltax = LineSeg.pt2(1) - LineSeg.pt1(1);
+deltay = LineSeg.pt2(2) - LineSeg.pt1(2);
+
+if(deltay == 0)
+   inc = deltax / NumOfPts;
+   Pts(:,1) = [LineSeg.pt1(1):inc:LineSeg.pt2(1)]';
+   Pts(:,2) = LineSeg.pt1(2);
+elseif(deltax == 0)
+    inc = deltay / NumOfPts;
+    Pts(1:NumOfPts,1) = LineSeg.pt1(1);
+    Pts(:,2) = [LineSeg.pt1(2):inc:LineSeg.pt2(2)]';
+else
+    incx = deltax / NumOfPts;
+    incy = deltay / NumOfPts;
+    Pts(:,1) = [LineSeg.pt1(1):incx:LineSeg.pt2(1)]';
+    Pts(:,2) = [LineSeg.pt1(2):incy:LineSeg.pt2(2)]';
+end
+LineSeg.pts = Pts;
 end
 
 function H33_struct = H33_AddCorrespondence(Worldx, Worldy, Imagex, Imagey, H33_struct)
@@ -431,6 +485,7 @@ val = GrayModel.v(1)*x + GrayModel.v(2)*y + GrayModel.v(3)*x*y + GrayModel.v(4);
 end
 
 function OC = OpticalCenter(height,width)
+OC = zeros(1,2);
 OC(2) = round(width/2);
 OC(1) = round(height/2);
 end
@@ -475,7 +530,7 @@ TagDetection = struct('id',[],'HD',[],'Rotation',[],'good',[]...
 %Export the decoded tag data
 TagDetection.id       = bestId;
 TagDetection.HD       = bestHamming;
-TagDetection.Rotation = bestRotation - 1;
+TagDetection.Rotation = bestRotation;
 TagDetection.good     = (bestHamming <= errorRecoveryBits);
 TagDetection.obsCode  = rCode;
 TagDetection.code     = bestCode;
@@ -510,16 +565,18 @@ function counts = PopCountReal(w)
 %integer wasn't large enough
 
 %Needed to split the uint64 into two uint32s
-TopBitmask = hex2dec('FFFFFFFF00000000');
-BotBitmask = hex2dec('00000000FFFFFFFF');
+%TopBitmask = hex2dec('FFFFFFFF00000000');
+TopBitmask = 18446744069414584320;
+%BotBitmask = hex2dec('00000000FFFFFFFF');
+BotBitmask = 4294967295;
 
 %Snagging top 32 bits
-top = bitshift(bitand(w,TopBitmask),-32);
-topCount = count(dec2bin(top),'1'); %count all the '1' bits
+top = string(dec2bin(bitshift(bitand(w,TopBitmask),-32)));
+topCount = count(top,'1'); %count all the '1' bits
 
 %Snagging bottom 32 bits
-bot = bitand(w,BotBitmask);
-botCount = count(dec2bin(bot),'1'); %count all the '1' bits
+bot = string(dec2bin(bitand(w,BotBitmask)));
+botCount = count(bot,'1'); %count all the '1' bits
 
 %Adding the count of bits
 counts = topCount + botCount;

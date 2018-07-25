@@ -5,11 +5,11 @@ if(nargin < 2)
     debug = 0;
 end
 
-if(debug == 1)
-    figure('Name','Original Image');
-    imshow(image);
-    title('Original Image');
-end
+% if(debug == 1)
+%     figure('Name','Original Image');
+%     imshow(image);
+%     title('Original Image');
+% end
 
 %Constants
 TagSize = 0.166;
@@ -54,7 +54,7 @@ dy = [ 0, 1,0;...
        0, 0,0;...
        0,-1,0];
 Ix = conv2(image_blurred,dx,'same');  %Convolve across x direction of image
-Iy = conv2(image_blurred,dy,'same');  %Convolve across y direction ofimage
+Iy = conv2(image_blurred,dy,'same');  %Convolve across y direction of image
 
 if(Debug_Gradient == 1)
     Ixn = NormalizeVals(Ix);
@@ -81,9 +81,12 @@ colorbar;
 title('Stage 2b: Gradient Direction');
 end
 
-%Stage 3 + 4: Edge Extraction / Clustering
-image_clusters = CalcEdges(ArraytoList(gm),ArraytoList(gd)...
-    ,0.004, size(image,1), size(image,2),image_gray);
+%Stage 3: Edge Extraction
+image_edges = CalcEdges(ArraytoList(gm),ArraytoList(gd)...
+    ,0.004, size(image,1), size(image,2));
+ 
+image_clusters = MergeEdges(image_edges,ArraytoList(gm),ArraytoList(gd)); %Merges the detected edges
+%image_clusters = MergeEdges_mex(image_edges,ArraytoList(gm),ArraytoList(gd)); %Merges the detected edges
 
 if(debug == 1)
 %Debug Code for visualization
@@ -145,6 +148,8 @@ if(debug == 1)
         plot(Seg4(1,:),Seg4(2,:),'r-','LineWidth',2);
         scatter([quads(i,1),quads(i,3),quads(i,5),quads(i,7)],...
             [quads(i,2),quads(i,4),quads(i,6),quads(i,8)],15,'go');
+        scatter([sum(Seg1(1,:))/2,sum(Seg2(1,:))/2,sum(Seg3(1,:))/2,sum(Seg4(1,:))/2],...
+            [sum(Seg1(2,:))/2,sum(Seg2(2,:))/2,sum(Seg3(2,:))/2,sum(Seg4(2,:))/2],15,'go');
     end
 end
 

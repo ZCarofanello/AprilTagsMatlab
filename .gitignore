@@ -5,9 +5,13 @@ apriltags/
 BadSources/
 output/
 Project/
+pics/Y
+pics/R
+pics/P
 
 #Intermediate files
 *.asv
 *.mexw64
 *.slx
+*.slx.original
 *.db

@@ -14,7 +14,7 @@ CameraMatrix = [Fx, 0, Px;...
                 0 , 0,  1];
 
 %Fx = -Fx;
-H = TD_struct.homography;
+H = TD_struct.homography.H;
 
 %Using the homography matrix to construct a rotation and translation matrix
 R20 =  H(3,1);
@@ -85,15 +85,15 @@ R = [R00,R01,R02;R10,R11,R12;R20,R21,R22];
 
 RotationFix = [1,0,0;0,-1,0;0,0,1];
 FrameFix = [0,0,1;-1,0,0;0,0,-1];
-R = R * FrameFix;
+%R = R * FrameFix;
 R = R * RotationFix;
 
 [yaw_t,pitch_t,roll_t] = rotation2Euler(R);
 
 %Outputting Calculated Pose
-Pose.yaw   = StandardRad(yaw_t + (pi/2))*(180/pi);
-Pose.pitch = StandardRad(pitch_t)*(180/pi);
-Pose.roll  = StandardRad(roll_t - (pi/2))*(180/pi);
+Pose.yaw   = -StandardRad(yaw_t + pi)*(180/pi);
+Pose.pitch = -(pitch_t)*(180/pi);
+Pose.roll  = StandardRad(roll_t)*(180/pi);
 Pose.x     = TX;
 Pose.y     = TY;
 Pose.z     = TZ;

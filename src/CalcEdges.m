@@ -1,4 +1,4 @@
-function Edge = CalcEdges(Magnitude, Direction, MagThr, height, width, gray_image)
+function Edge = CalcEdges(Magnitude, Direction, MagThr, height, width)
     MinMag = MagThr;
     Edge = [];
     
@@ -97,7 +97,6 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr, height, width, gray_imag
 %     scatter(Edge(:,4),Edge(:,5),'r*');
 %     hold off;
     
-    Edge = MergeEdges(Edge,Magnitude,Direction); %Merges the detected edges
 end
 
 function cost = EdgeCost(Theta0,Theta1)

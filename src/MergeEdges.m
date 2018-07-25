@@ -13,8 +13,13 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
     mmin = ArraytoList(Magnitude);
     mmax = mmin;
     
+    ValidIds = [Edges(:,2) ; Edges(:,3)];
+    
     %Create the unionfind vector which is pre allocated for speed
     SimpleUF = [(1:width*height)', ones(1,width*height)'];
+    
+    test = ismember(SimpleUF(:,1),ValidIds);
+    SimpleUF(~test) = 0;
     
     for i = 1:size(Edges,1)
         ida = Edges(i,2);
@@ -57,7 +62,7 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
             mmax(idb)-mmin(idb)) + (magThr/(sza+szb));
         
         if(Value1 && Value2)
-            [SimpleUF, idab] = IconnectNodes(SimpleUF, ida, idb);
+            [SimpleUF, idab] = IconnectNodes(SimpleUF, ida, idb,test);
             
             tmin(idab) = tminab; %Sets the minimum theta
             tmax(idab) = tmaxab; %Sets the maximum theta
@@ -92,7 +97,7 @@ UpdatedArray = UFArray;   %Return the updated array
 end
 
 %connects and merges the two trees together
-function [UFArray,root] = IconnectNodes(UFArray, aId,bId)
+function [UFArray,root] = IconnectNodes(UFArray, aId,bId,ValidIds)
 
     aRoot = IgetRepresentative(UFArray,aId); %Get rep of a
     bRoot = IgetRepresentative(UFArray,bId); %Get rep of b
@@ -106,11 +111,7 @@ function [UFArray,root] = IconnectNodes(UFArray, aId,bId)
         %Add the sizes together
         UFArray(aRoot,2) = UFArray(aRoot,2) + UFArray(bRoot,2);
         
-        for i = 1:size(UFArray,1)
-           if(UFArray(i,1) == bRoot)
-               UFArray(i,1) = aRoot;
-           end
-        end
+        UFArray(UFArray == bRoot) = aRoot;
         
         root=aRoot; %Return the new root
         return;
@@ -118,11 +119,7 @@ function [UFArray,root] = IconnectNodes(UFArray, aId,bId)
         %Add the sizes together
         UFArray(bRoot,2) = UFArray(aRoot,2) + UFArray(bRoot,2);
         
-        for i = 1:size(UFArray,1)
-           if(UFArray(i,1) == aRoot)
-               UFArray(i,1) = bRoot;
-           end
-        end
+        UFArray(UFArray == aRoot) = bRoot;
         
         root=bRoot; %Return the new root
         return;
