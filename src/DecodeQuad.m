@@ -138,7 +138,7 @@ for i = 1:size(quads,1)
         R(1,2) = -s;
         R(2,1) = s;
         R(3,3) = 1;
-        %TagDetection.homography.H = TagDetection.homography.H * R;
+        TagDetection.homography.H = TagDetection.homography.H * R;
 
         %Should be the bottom left point of the tag
         [bLx,bLy] = Quad_interpolate01(-1,-1,TagDetection.homography);
@@ -530,7 +530,7 @@ TagDetection = struct('id',[],'HD',[],'Rotation',[],'good',[]...
 %Export the decoded tag data
 TagDetection.id       = bestId;
 TagDetection.HD       = bestHamming;
-TagDetection.Rotation = bestRotation;
+TagDetection.Rotation = bestRotation - 1;
 TagDetection.good     = (bestHamming <= errorRecoveryBits);
 TagDetection.obsCode  = rCode;
 TagDetection.code     = bestCode;

@@ -13,7 +13,10 @@ This is a fairly faithful port of the AprilTags library into m code. This was de
 * Statistics and Machine Learning Toolbox
 
 ### Running the Program
-Just run an image using the AprilTag.m function 
+Call the function AprilTag(imageData,debug) or  AprilTag(imageData) and it will return the pose and the detection data.
+imageData is from using the [imread](https://www.mathworks.com/help/matlab/ref/imread.html) function and debug can be set to see intermediate step visualizations. 
+
+Examples of the AprilTag function being used can be seen in [matlab_code.m](src/matlab_code.m).
 
 ## Copyright and License
 All files in this repository are released under the GNU LGPL version 2.1.
