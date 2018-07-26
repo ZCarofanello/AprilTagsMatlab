@@ -163,15 +163,15 @@ Detections = DecodeQuad(quads,image_gray,0);
 %Stage 10?: Decode Pose From Detections
 Pose = PoseDecoding(Detections,TagSize,Fx,Fy,Px,Py);
 
-if(debug == 1)
-sprintf('I found %i tag(s)\n',size(Detections,1))
-for NumDet = 1:size(Detections)
-    sprintf('Id:%i (Hamming: %i)',Detections(NumDet).id,Detections(NumDet).HD)
-    sprintf('distance=%5fm, x=%5f, y=%5f, z=%5f, pitch=%5f, roll=%5f, yaw=%5f',...
-        Pose(NumDet).dist,Pose(NumDet).x,Pose(NumDet).y,Pose(NumDet).z,...
-        Pose(NumDet).pitch,Pose(NumDet).roll,Pose(NumDet).yaw)
-end
-end
+% if(debug == 1)
+% sprintf('I found %i tag(s)\n',size(Detections,1))
+% for NumDet = 1:size(Detections)
+%     sprintf('Id:%i (Hamming: %i)',Detections(NumDet).id,Detections(NumDet).HD)
+%     sprintf('distance=%5fm, x=%5f, y=%5f, z=%5f, pitch=%5f, roll=%5f, yaw=%5f',...
+%         Pose(NumDet).dist,Pose(NumDet).x,Pose(NumDet).y,Pose(NumDet).z,...
+%         Pose(NumDet).pitch,Pose(NumDet).roll,Pose(NumDet).yaw)
+% end
+% end
 
 if(debug == 1)
     %Debug visualization

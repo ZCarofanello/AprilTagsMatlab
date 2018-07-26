@@ -55,25 +55,25 @@ for j = 1:size(YawPics,1)
    YawObs = [YawObs, Pose];
 end
 
-figure;
-%Pitch Output
-plotYPR(0,PdataC,PitchObs, 0)
-
-%Roll Output
-plotYPR(1,RdataC,RollObs, 0)
-
-%Yaw Disp
-plotYPR(2,YdataC,YawObs, 0)
-
-figure;
-%Pitch Diff
-plotYPR(0,PdataC,PitchObs, 1)
-
-%Roll Diff
-plotYPR(1,RdataC,RollObs, 1)
-
-%Yaw Diff
-plotYPR(2,YdataC,YawObs, 1)
+% figure;
+% %Pitch Output
+% plotYPR(0,PdataC,PitchObs, 0)
+% 
+% %Roll Output
+% plotYPR(1,RdataC,RollObs, 0)
+% 
+% %Yaw Disp
+% plotYPR(2,YdataC,YawObs, 0)
+% 
+% figure;
+% %Pitch Diff
+% plotYPR(0,PdataC,PitchObs, 1)
+% 
+% %Roll Diff
+% plotYPR(1,RdataC,RollObs, 1)
+% 
+% %Yaw Diff
+% plotYPR(2,YdataC,YawObs, 1)
 
 function plotYPR(RowNum,CData,MatData,diff)
 switch RowNum

@@ -3,23 +3,34 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
     thetaThr = 100;
     magThr = 1200;
     
-    %Get the width and height of the iamge
-    width = size(Magnitude,2);
-    height = size(Magnitude,1);
+    ValidIds = unique([Edges(:,2) ; Edges(:,3)]);
+    EncRing = [ValidIds,(1:size(ValidIds,1))'];
+    
+    %convert Edges to local mapping
+    Loops = length(ValidIds);
+    parfor k = 2:3
+        ThisCol = Edges(:,k);
+        for j = 1:Loops
+            ThisCol(ThisCol(:) == ValidIds(j)) = j;
+        end
+        Edges(:,k) = ThisCol
+    end
+
+%     for j = 1:length(ValidIds)
+%         Edges(ValidIds(j) == Edges(:,2),2) = j;
+%         Edges(ValidIds(j) == Edges(:,3),3) = j; 
+%     end
     
     %Reshape the Magnitude and Directions of the arrays
     tmin = ArraytoList(Direction);
+    tmin = tmin(ValidIds);
     tmax = tmin;
     mmin = ArraytoList(Magnitude);
+    mmin = mmin(ValidIds);
     mmax = mmin;
     
-    ValidIds = [Edges(:,2) ; Edges(:,3)];
-    
     %Create the unionfind vector which is pre allocated for speed
-    SimpleUF = [(1:width*height)', ones(1,width*height)'];
-    
-    test = ismember(SimpleUF(:,1),ValidIds);
-    SimpleUF(~test) = 0;
+    SimpleUF = [(1:length(ValidIds))',ones(length(ValidIds),1)];
     
     for i = 1:size(Edges,1)
         ida = Edges(i,2);
@@ -62,7 +73,7 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
             mmax(idb)-mmin(idb)) + (magThr/(sza+szb));
         
         if(Value1 && Value2)
-            [SimpleUF, idab] = IconnectNodes(SimpleUF, ida, idb,test);
+            [SimpleUF, idab] = IconnectNodes(SimpleUF, ida, idb);
             
             tmin(idab) = tminab; %Sets the minimum theta
             tmax(idab) = tmaxab; %Sets the maximum theta
@@ -71,10 +82,22 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
             mmin(idab) = mmaxab; %Sets the maximum mag
         end
     end
+    
     %Export the clusters
-    Clusters = ExportClusters(SimpleUF,Magnitude, Edges);
+    Clusters = ExportClusters(SimpleUF,Magnitude, Edges,EncRing);
 end
 
+% function localIds = Cvt2LocMany(Mapping,EdgeMatrix)
+% localIds(Mapping(:,1) == EdgeMatrix(:,2),2) = Mapping(:,2); 
+% end
+
+function localId = Cvt2Loc(Mapping,EdgeId)
+    localId = Mapping(EdgeId == Mapping(:,1),2);
+end
+
+function globalId = Cvt2Pic(Mapping,localId)
+    globalId = Mapping(localId == Mapping(:,2),1);
+end
 
 % Gets the representative of the node
 function root = IgetRepresentative(UFArray,NodeId)
@@ -97,7 +120,7 @@ UpdatedArray = UFArray;   %Return the updated array
 end
 
 %connects and merges the two trees together
-function [UFArray,root] = IconnectNodes(UFArray, aId,bId,ValidIds)
+function [UFArray,root] = IconnectNodes(UFArray, aId,bId)
 
     aRoot = IgetRepresentative(UFArray,aId); %Get rep of a
     bRoot = IgetRepresentative(UFArray,bId); %Get rep of b
@@ -111,7 +134,12 @@ function [UFArray,root] = IconnectNodes(UFArray, aId,bId,ValidIds)
         %Add the sizes together
         UFArray(aRoot,2) = UFArray(aRoot,2) + UFArray(bRoot,2);
         
-        UFArray(UFArray == bRoot) = aRoot;
+        logicArr = UFArray(UFArray == bRoot);
+        for j = 1:length(UFArray)
+            if(logicArr)
+                UFArray(j,1) = aRoot;
+            end
+        end        
         
         root=aRoot; %Return the new root
         return;
@@ -119,7 +147,13 @@ function [UFArray,root] = IconnectNodes(UFArray, aId,bId,ValidIds)
         %Add the sizes together
         UFArray(bRoot,2) = UFArray(aRoot,2) + UFArray(bRoot,2);
         
-        UFArray(UFArray == aRoot) = bRoot;
+        logicArr = UFArray(UFArray == aRoot);
+        for j = 1:length(UFArray)
+            if(logicArr)
+                UFArray(j,1) = bRoot;
+            end
+        end
+        
         
         root=bRoot; %Return the new root
         return;
@@ -157,16 +191,6 @@ function [NewUFArray,root] = connectNodes(UFArray, aId,bId)
     end
 end
 
-function FixedTree = FlattenTree(OldRoot,NewRoot,UF_Array)
-Children_Idx = FindChildren(UF_Array,OldRoot); %Gets all children from root
-UF_Array(Children_Idx,1) = NewRoot;            %Shortcuts all children
-FixedTree = UF_Array;
-end
-
-function Nodes = FindChildren(UF_Array, ParentIdx)
-Nodes = find(UF_Array(:,1) == ParentIdx); %Finds all the children Idx
-end
-
 function longArray = ArraytoList(Array)
 Width = size(Array,2);
 Height  = size(Array,1);
@@ -180,39 +204,25 @@ end
 end
 
 %Formatting the clusters as a list with points to make it easier later
-function ClusterList = ExportClusters(UF_Array,Magnitude,Edges)
+function ClusterList = ExportClusters(UF_Array,Magnitude,Edges,Mapping)
     %Need to export these constants
     MinCluster = 4;
 
     %find clusters that have more than the MinSeg
     Valid_Clusters = UF_Array((UF_Array(:,2) >= MinCluster),1);
     
-    %Extra check to flatten tree (not necessary)
-%     for k = 1:length(Valid_Clusters)
-%         root = getRepresentative(UF_Array,Valid_Clusters(k));
-%         UF_Array = FlattenTree(Valid_Clusters(k),root,UF_Array);
-%     end
 
     %Create a logical array for faster indexing / display
     logical_arr = ismember(UF_Array(:,1),Valid_Clusters);
     
-    ClusterList = [];  %Empty matrix for clusters
-    FirstEntry = true; %Bool to make sure we don't miss the first entry
+    ClusterList = zeros(size(Edges,1),4);  %Empty matrix for clusters
     
     for i = 1:size(Edges,1)-1 %loops through all the edges
-        if(logical_arr(Edges(i,2))) %Is the edge a part of valid cluster
-            
-            EdgeCluster = UF_Array(Edges(i,3),1); %Gets cluster #
-            EdgeMag = Magnitude(Edges(i,3));      %Gets magnitude
-            EdgeX = Edges(i,4);                   %Gets X coord
-            EdgeY = Edges(i,5);                   %Gets Y coord
-            if(FirstEntry)
-                ClusterList = [EdgeX,EdgeY,EdgeMag,EdgeCluster];
-                FirstEntry = false;
-            else
-                ClusterList=[ClusterList;EdgeX,EdgeY,EdgeMag,EdgeCluster];
-            end
-        end
+        EdgeCluster = UF_Array(Edges(i,3),1); %Gets cluster #
+        EdgeMag = Magnitude(Edges(i,3));      %Gets magnitude
+        EdgeX = Edges(i,4);                   %Gets X coord
+        EdgeY = Edges(i,5);                   %Gets Y coord
+        ClusterList(i,:) = [EdgeX,EdgeY,EdgeMag,EdgeCluster];
     end
 
     ClusterList = sortrows(ClusterList,4);
