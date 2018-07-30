@@ -3,23 +3,29 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
     thetaThr = 100;
     magThr = 1200;
     
+    Edges((Edges(:,2)==0),:) = [];
+    
     ValidIds = unique([Edges(:,2) ; Edges(:,3)]);
     EncRing = [ValidIds,(1:size(ValidIds,1))'];
     
     %convert Edges to local mapping
-    Loops = length(ValidIds);
-    parfor k = 2:3
-        ThisCol = Edges(:,k);
-        for j = 1:Loops
-            ThisCol(ThisCol(:) == ValidIds(j)) = j;
-        end
-        Edges(:,k) = ThisCol
-    end
+%     Loops = length(ValidIds);
+%     parfor k = 2:3
+%         ThisCol = Edges(:,k);
+%         test = ValidIds;
+%         for j = 1:Loops
+%             ThisCol(ThisCol(:) == test(j)) = j;
+%         end
+%         Edges(:,k) = ThisCol
+%     end
 
 %     for j = 1:length(ValidIds)
 %         Edges(ValidIds(j) == Edges(:,2),2) = j;
 %         Edges(ValidIds(j) == Edges(:,3),3) = j; 
 %     end
+
+    Edges(:,2) = ME_LM(uint64(ValidIds),uint64(Edges(:,2)));
+    Edges(:,3) = ME_LM(uint64(ValidIds),uint64(Edges(:,3)));
     
     %Reshape the Magnitude and Directions of the arrays
     tmin = ArraytoList(Direction);
@@ -53,7 +59,10 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
         costb = tmaxb-tminb; %Intermediate cost value
         
         %Makes sure that the angles aren't more than +/- PI
-        bshift = mod2pi((tminb+tmaxb)/2,(tmina+tmaxa)/2)-(tminb+tmaxb)/2;
+        %bshift = mod2pi((tminb+tmaxb)/2,(tmina+tmaxa)/2)-(tminb+tmaxb)/2;
+        
+        bshift = mod2pi(((tminb+tmaxb)/2) - ((tmina+tmaxa)/2)) + ((tmina+tmaxa)/2);
+        bshift = bshift -(tminb+tmaxb)/2;
         
         tminab = min(tmina, tminb+bshift); %Theta min
         tmaxab = max(tmaxa, tmaxb+bshift); %Theta max
@@ -87,36 +96,10 @@ function Clusters = MergeEdges(Edges,Magnitude,Direction)
     Clusters = ExportClusters(SimpleUF,Magnitude, Edges,EncRing);
 end
 
-% function localIds = Cvt2LocMany(Mapping,EdgeMatrix)
-% localIds(Mapping(:,1) == EdgeMatrix(:,2),2) = Mapping(:,2); 
-% end
-
-function localId = Cvt2Loc(Mapping,EdgeId)
-    localId = Mapping(EdgeId == Mapping(:,1),2);
-end
-
-function globalId = Cvt2Pic(Mapping,localId)
-    globalId = Mapping(localId == Mapping(:,2),1);
-end
-
 % Gets the representative of the node
 function root = IgetRepresentative(UFArray,NodeId)
-    if(UFArray(NodeId,1) == NodeId) %If it is it's own rep return
-        root = NodeId;              %No changes
-    else
+%     root = ME_GR(UFArray(:,1),uint32(NodeId));
         root = UFArray(NodeId,1);
-    end
-end
-
-% Gets the representative of the node
-function [root,UpdatedArray] = getRepresentative(UFArray,NodeId)
-    if(UFArray(NodeId,1) == NodeId) %If it is it's own rep return
-        root = NodeId;              %No changes
-    else
-        root = getRepresentative(UFArray,UFArray(NodeId,1)); %Recurse
-        UFArray(NodeId,1) = root; %Flatten the tree
-    end
-UpdatedArray = UFArray;   %Return the updated array
 end
 
 %connects and merges the two trees together
@@ -124,6 +107,9 @@ function [UFArray,root] = IconnectNodes(UFArray, aId,bId)
 
     aRoot = IgetRepresentative(UFArray,aId); %Get rep of a
     bRoot = IgetRepresentative(UFArray,bId); %Get rep of b
+
+%     aRoot = ME_GR(UFArray(:,1),uint32(aId));
+%     bRoot = ME_GR(UFArray(:,1),uint32(bId));
 
     if(aRoot==bRoot) %It's already connected!
         root=aRoot;  %Return the root
@@ -134,57 +120,21 @@ function [UFArray,root] = IconnectNodes(UFArray, aId,bId)
         %Add the sizes together
         UFArray(aRoot,2) = UFArray(aRoot,2) + UFArray(bRoot,2);
         
-        logicArr = UFArray(UFArray == bRoot);
-        for j = 1:length(UFArray)
-            if(logicArr)
-                UFArray(j,1) = aRoot;
-            end
-        end        
-        
+        UFArray(UFArray(:,1) == bRoot,1) = aRoot;
+%         tmp = (UFArray(:,1) == bRoot);
+%         UFArray(tmp,1) = aRoot;
+%         UFArray(:,1) = ME_CN(uint64(UFArray(:,1)),uint64(bRoot),uint64(aRoot));
+
         root=aRoot; %Return the new root
         return;
     else
         %Add the sizes together
         UFArray(bRoot,2) = UFArray(aRoot,2) + UFArray(bRoot,2);
         
-        logicArr = UFArray(UFArray == aRoot);
-        for j = 1:length(UFArray)
-            if(logicArr)
-                UFArray(j,1) = bRoot;
-            end
-        end
-        
-        
-        root=bRoot; %Return the new root
-        return;
-    end
-end
-
-%connects and merges the two trees together
-function [NewUFArray,root] = connectNodes(UFArray, aId,bId)
-
-    [aRoot, UFArray] = getRepresentative(UFArray,aId); %Get rep of a
-    [bRoot, UFArray] = getRepresentative(UFArray,bId); %Get rep of b
-    NewUFArray = UFArray; %copy the array
-
-    if(aRoot==bRoot) %It's already connected!
-        root=aRoot;  %Return the root
-        return;
-    end
-    
-    if(UFArray(aRoot,2) > UFArray(bRoot,2)) %Larger tree wins!
-        NewUFArray(bRoot,1) = aRoot; %Set the new root
-        
-        %Add the sizes together
-        NewUFArray(aRoot,2) = NewUFArray(aRoot,2) + NewUFArray(bRoot,2);
-        
-        root=aRoot; %Return the new root
-        return;
-     else
-        NewUFArray(aRoot,1) = bRoot; %Set the new root
-        
-        %Add the sizes together
-        NewUFArray(bRoot,2) = NewUFArray(aRoot,2) + NewUFArray(bRoot,2);
+        UFArray(UFArray(:,1) == aRoot,1) = bRoot;
+%         tmp = (UFArray(:,1) == aRoot);
+%         UFArray(tmp,1) = bRoot;
+%         UFArray(:,1) = ME_CN(uint64(UFArray(:,1)),uint64(aRoot),uint64(bRoot));
         
         root=bRoot; %Return the new root
         return;

@@ -217,31 +217,6 @@ Homography = H33_AddCorrespondence( 1,-1,ThisQuad.p(2,1),ThisQuad.p(2,2),Homogra
 Homography = H33_AddCorrespondence( 1, 1,ThisQuad.p(3,1),ThisQuad.p(3,2),Homography);
 Homography = H33_AddCorrespondence(-1, 1,ThisQuad.p(4,1),ThisQuad.p(4,2),Homography);
 
-
-% Seg(1) = struct('pt1',ThisQuad.p(1,:),'pt2',ThisQuad.p(2,:),'pts', []);
-% Seg(2) = struct('pt1',ThisQuad.p(2,:),'pt2',ThisQuad.p(3,:),'pts', []);
-% Seg(3) = struct('pt1',ThisQuad.p(3,:),'pt2',ThisQuad.p(4,:),'pts', []);
-% Seg(4) = struct('pt1',ThisQuad.p(4,:),'pt2',ThisQuad.p(1,:),'pts', []);
-% 
-% numOfPts = 64;
-% Seg(1) = ExtrapolatePts(Seg(1),numOfPts);
-% Seg(2) = ExtrapolatePts(Seg(2),numOfPts);
-% Seg(3) = ExtrapolatePts(Seg(3),numOfPts);
-% Seg(4) = ExtrapolatePts(Seg(4),numOfPts);
-% 
-% PtsInc = 2/numOfPts;
-% for p = 1:numOfPts
-%     CurrentInc = p*(PtsInc);
-%     %Segment 1
-%     Homography = H33_AddCorrespondence(-1+CurrentInc, -1,Seg(1).pts(p,1),Seg(1).pts(p,2),Homography);
-%     %Segment 2
-%     Homography = H33_AddCorrespondence(1, -1+CurrentInc,Seg(2).pts(p,1),Seg(2).pts(p,2),Homography);
-%     %Segment 3
-%     Homography = H33_AddCorrespondence(1-CurrentInc,1,Seg(3).pts(p,1),Seg(3).pts(p,2),Homography);
-%     %Segment 4
-%     Homography = H33_AddCorrespondence(-1,1-CurrentInc,Seg(4).pts(p,1),Seg(4).pts(p,2),Homography);
-% end
-
 end
 
 function LineSeg = ExtrapolatePts(LineSeg, NumOfPts)
@@ -498,7 +473,7 @@ end
 
 function TagDetection = TF_Decode(rCode)
 %Constants that need to be exported
-errorRecoveryBits = 1;
+errorRecoveryBits = 0;
 
 %Init local variables
 bestId = -1;
@@ -520,7 +495,9 @@ rCodes(4) = rotate90(rCodes(3),6);
 %observation
 for id = 1:size(TagFamily.Codes,2)
     for rot = 1:4
-        thisHamming = HammingDistance(rCodes(rot),TagFamily.Codes(id));
+        thisCodeCheck = TagFamily.Codes(id);
+        thisCode = rCodes(rot);
+        thisHamming = HammingDistance(thisCode,thisCodeCheck);
         if(thisHamming < bestHamming)
             bestHamming = thisHamming;
             bestRotation = rot;
@@ -562,7 +539,7 @@ RotatedTag = wr;
 end
 
 function Hd = HammingDistance(a,b)
-Hd = PopCountReal(bitxor(a,b));
+Hd = HammingDistMex(a,b);
 end
 
 function counts = PopCountReal(w)

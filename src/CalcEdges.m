@@ -1,6 +1,6 @@
 function Edge = CalcEdges(Magnitude, Direction, MagThr, height, width)
     MinMag = MagThr;
-    Edge = nan(50000,5);
+    Edge = zeros(100000,5);
     EdgeCnt = 1;
     MagLogical = Magnitude > MinMag;
     
@@ -70,7 +70,6 @@ function Edge = CalcEdges(Magnitude, Direction, MagThr, height, width)
             end
         end
     end
-    Edge(isnan(Edge(:,2)),:) = [];
     
     Edge = sortrows(Edge,1); %Not needed but helps the merger a little
     %Display found Edges
